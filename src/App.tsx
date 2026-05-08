@@ -130,21 +130,21 @@ export default function App() {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="px-5 py-5 bg-[#131b2e] border-b border-white/5 flex items-center justify-between z-20 shadow-lg">
+      <header className="px-5 py-4 bg-teal-600 border-b border-teal-700/50 flex items-center justify-between z-20 shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl flex items-center justify-center text-white shadow-xl">
-            <Bot size={20} className="text-teal-200" />
+          <div className="w-10 h-10 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center shadow-sm">
+            <Bot size={20} className="text-white" />
           </div>
           <div>
             <h1 className="text-base font-bold text-white tracking-tight">AI Фармацевт</h1>
             <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-pulse shadow-sm shadow-teal-400/50" />
-              <span className="text-[10px] text-teal-100/60 font-semibold uppercase tracking-widest">Online Assistant</span>
+              <div className="w-1.5 h-1.5 bg-teal-300 rounded-full animate-pulse shadow-sm shadow-teal-300/50" />
+              <span className="text-[10px] text-teal-50/70 font-bold uppercase tracking-widest">Ассистент онлайн</span>
             </div>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" className="flex items-center gap-2 px-3 text-indigo-100 hover:bg-white/10 hover:text-white transition-all rounded-xl" onClick={clearHistory}>
+          <Button variant="ghost" className="flex items-center gap-2 px-3 text-teal-50 hover:bg-white/10 hover:text-white transition-all rounded-xl" onClick={clearHistory}>
             <Trash2 size={16} />
             <span className="hidden sm:inline text-xs font-bold uppercase tracking-tight">Очистить</span>
           </Button>
