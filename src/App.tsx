@@ -7,31 +7,62 @@ import { nanoid } from 'nanoid';
 import { Message } from './types';
 import { Bot, Trash2, ShieldAlert } from 'lucide-react';
 import { Button } from './components/UI';
+import { AnimatePresence, motion } from 'motion/react';
 
 export default function App() {
-  const { messages, isLoading, addMessage, updateMessage, setLoading, setError, clearHistory } = useChatStore();
+  const { messages, isLoading, error, addMessage, updateMessage, setLoading, setError, clearHistory } = useChatStore();
   
   const lastAiResponse = useMemo(() => {
     const aiMessages = messages.filter(m => m.role === 'assistant');
     return aiMessages[aiMessages.length - 1]?.ai_data;
   }, [messages]);
 
-  const handleSendMessage = useCallback(async (text: string, image?: string, isVoice?: boolean) => {
+  const handleSendMessage = useCallback(async (text: string, image?: string, audioBlob?: Blob) => {
+    if (!text.trim() && !image && !audioBlob) return;
+
+    const messageId = nanoid();
     const userMessage: Message = {
-      id: nanoid(),
+      id: messageId,
       role: 'user',
-      content: text,
+      content: text || (audioBlob ? 'Голосовое сообщение...' : ''),
       timestamp: Date.now(),
-      attachments: image ? [{ type: 'image', url: image }] : isVoice ? [{ type: 'voice', url: 'voice.webm' }] : undefined,
+      attachments: image ? [{ type: 'image', url: image }] : audioBlob ? [{ type: 'voice', url: 'voice.webm' }] : undefined,
     };
 
     addMessage(userMessage);
-    setLoading(true);
     setError(null);
 
     try {
-      const history = messages.map(m => {
-        const content: any[] = [{ type: 'text', text: m.content }];
+      let finalContent = text;
+
+      // Если это голосовое — сначала расшифровываем
+      if (audioBlob) {
+        setLoading(true, 'Расшифровка аудио');
+        try {
+          finalContent = await apiService.transcribeVoice(audioBlob);
+          // Check if we still have messages (wasn't cleared)
+          if (useChatStore.getState().messages.length > 0) {
+            updateMessage(messageId, { content: finalContent });
+          } else {
+            return; // Exit if cleared
+          }
+        } catch (err: any) {
+          if (useChatStore.getState().messages.length > 0) {
+            updateMessage(messageId, { content: '⚠️ Ошибка расшифровки голоса' });
+          }
+          throw err;
+        }
+      }
+
+      setLoading(true, image ? 'Анализ изображения' : 'Обработка запроса');
+
+      const currentMessages = useChatStore.getState().messages;
+      if (currentMessages.length === 0) return; // Exit if cleared
+
+      const history = currentMessages.map(m => {
+        // Use updated content if it was a voice message
+        const currentContentText = m.id === messageId ? finalContent : (m.content || m.ai_data?.summary || '');
+        const content: any[] = [{ type: 'text', text: currentContentText }];
         if (m.attachments) {
           m.attachments.forEach(att => {
             if (att.type === 'image') {
@@ -42,14 +73,27 @@ export default function App() {
         return { role: m.role, content };
       });
 
-      const currentContent: any[] = [{ type: 'text', text: userMessage.content }];
+      const currentMessageContent: any[] = [{ type: 'text', text: finalContent }];
       if (image) {
-        currentContent.push({ type: 'image_url', image_url: { url: image } });
+        currentMessageContent.push({ type: 'image_url', image_url: { url: image } });
       }
 
-      history.push({ role: 'user', content: currentContent });
+      history.push({ role: 'user', content: currentMessageContent });
+
+      // Step 2: More detailed analysis status
+      if (image) {
+        setLoading(true, 'Распознавание медикаментов');
+        await new Promise(r => setTimeout(r, 800));
+        setLoading(true, 'Проверка совместимости');
+      } else {
+        setLoading(true, 'Поиск информации');
+      }
 
       const aiData = await apiService.chat(history);
+      
+      if (useChatStore.getState().messages.length === 0) return; // Exit if cleared
+      
+      setLoading(true, 'Генерация рекомендаций');
       
       const assistantMessage: Message = {
         id: nanoid(),
@@ -61,15 +105,36 @@ export default function App() {
 
       addMessage(assistantMessage);
     } catch (err: any) {
-      setError(err.message);
+      const errorMessage = typeof err.message === 'string' ? err.message : 'Произошла неизвестная ошибка';
+      setError(errorMessage);
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [messages, addMessage, setLoading, setError]);
+  }, [messages, addMessage, updateMessage, setLoading, setError]);
 
   return (
     <div className="flex flex-col h-screen max-w-2xl mx-auto bg-slate-50 shadow-2xl relative overflow-hidden">
+      {/* Error Banner */}
+      <AnimatePresence>
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute top-20 left-4 right-4 z-50 bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-xl shadow-lg flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <ShieldAlert size={18} />
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+            <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700">
+              <Trash2 size={16} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="px-5 py-4 glass border-b border-white/40 flex items-center justify-between z-20">
         <div className="flex items-center gap-3">

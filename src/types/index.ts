@@ -24,10 +24,11 @@ export interface Message {
 export interface ChatState {
   messages: Message[];
   isLoading: boolean;
+  status: string | null;
   error: string | null;
   addMessage: (message: Message) => void;
   updateMessage: (id: string, updates: Partial<Message>) => void;
-  setLoading: (loading: boolean) => void;
+  setLoading: (loading: boolean, status?: string | null) => void;
   setError: (error: string | null) => void;
   clearHistory: () => void;
 }

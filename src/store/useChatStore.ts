@@ -7,6 +7,7 @@ export const useChatStore = create<ChatState>()(
     (set) => ({
       messages: [],
       isLoading: false,
+      status: null,
       error: null,
       addMessage: (message) => 
         set((state) => ({ messages: [...state.messages, message] })),
@@ -14,9 +15,9 @@ export const useChatStore = create<ChatState>()(
         set((state) => ({
           messages: state.messages.map((m) => (m.id === id ? { ...m, ...updates } : m)),
         })),
-      setLoading: (loading) => set({ isLoading: loading }),
+      setLoading: (loading, status = null) => set({ isLoading: loading, status: status }),
       setError: (error) => set({ error: error }),
-      clearHistory: () => set({ messages: [] }),
+      clearHistory: () => set({ messages: [], isLoading: false, status: null, error: null }),
     }),
     {
       name: 'medical-ai-chat-history',

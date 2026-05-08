@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, Mic, Send, X, Loader2, StopCircle, Paperclip } from 'lucide-react';
 import { Button, Input } from './UI';
 import { apiService } from '../services/apiService';
@@ -6,14 +6,37 @@ import { nanoid } from 'nanoid';
 import { Message, AIResponse } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { useChatStore } from '../store/useChatStore';
+
+const VoiceWaveform = () => {
+  return (
+    <div className="flex items-center gap-0.5 h-4">
+      {[...Array(5)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="w-1 bg-red-400 rounded-full"
+          animate={{
+            height: [4, 16, 8, 12, 4],
+          }}
+          transition={{
+            duration: 0.6,
+            repeat: Infinity,
+            delay: i * 0.1,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
 
 interface ChatInputProps {
-  onSend: (text: string, image?: string, isVoice?: boolean) => void;
+  onSend: (text: string, image?: string, audioBlob?: Blob) => void;
   isLoading: boolean;
   suggestions?: string[];
 }
 
 export const ChatInput = ({ onSend, isLoading, suggestions }: ChatInputProps) => {
+  const setLoading = useChatStore(state => state.setLoading);
   const [text, setText] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -55,24 +78,21 @@ export const ChatInput = ({ onSend, isLoading, suggestions }: ChatInputProps) =>
         audioChunksRef.current.push(event.data);
       };
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        setIsTranscribing(true);
-        try {
-          const transcribedText = await apiService.transcribeVoice(audioBlob);
-          onSend(transcribedText, undefined, true);
-        } catch (err) {
-          console.error('Transcription error:', err);
-        } finally {
-          setIsTranscribing(false);
+      mediaRecorder.onstop = () => {
+        if (audioChunksRef.current.length > 0) {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          if (audioBlob.size > 100) { // Проверяем, что это не пустой клик
+            onSend('', undefined, audioBlob);
+          }
         }
+        setIsRecording(false);
       };
 
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
       console.error('Recording error:', err);
-      alert('Нет доступа к микрофону');
+      alert('Нет доступа к микрофону или ошибка записи');
     }
   };
 
@@ -163,8 +183,13 @@ export const ChatInput = ({ onSend, isLoading, suggestions }: ChatInputProps) =>
             onChange={(e) => setText(e.target.value)}
             placeholder={isRecording ? "Слушаю вас..." : "Задайте вопрос..."}
             disabled={isLoading || isRecording || isTranscribing}
-            className="pr-12 rounded-full h-11"
+            className={cn("pr-12 rounded-full h-11", isRecording && "pl-12 border-red-200 bg-red-50/30")}
           />
+          {isRecording && (
+            <div className="absolute left-4 top-1/2 -translate-y-1/2">
+              <VoiceWaveform />
+            </div>
+          )}
           {isTranscribing && (
             <div className="absolute right-4 top-1/2 -translate-y-1/2">
               <Loader2 size={18} className="animate-spin text-blue-500" />

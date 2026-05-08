@@ -2,6 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { openai } from './utils/openai.js';
 import formidable from 'formidable';
 import fs from 'fs';
+import { toFile } from 'openai';
 
 export const config = {
   api: {
@@ -22,14 +23,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         resolve([fields, files]);
       });
     });
+    // Инстанс OpenAI загружен из utils/openai.js
     const audioFile = Array.isArray(files.file) ? files.file[0] : files.file;
 
     if (!audioFile) {
       return res.status(400).json({ error: 'Файл не найден' });
     }
 
+    // Читаем файл в буфер и создаем File объект для OpenAI
+    const buffer = fs.readFileSync(audioFile.filepath);
+    const file = await toFile(buffer, 'voice.webm', { type: 'audio/webm' });
+
     const transcription = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(audioFile.filepath),
+      file: file,
       model: 'whisper-1',
       language: 'ru',
     });

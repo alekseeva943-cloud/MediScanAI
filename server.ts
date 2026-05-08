@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import OpenAI from 'openai';
+import OpenAI, { toFile } from 'openai';
 import formidable from 'formidable';
 import fs from 'fs';
 import dotenv from 'dotenv';
@@ -54,8 +54,11 @@ async function startServer() {
         return res.status(400).json({ error: 'No audio file' });
       }
 
+      const buffer = fs.readFileSync(audioFile.filepath);
+      const file = await toFile(buffer, 'voice.webm', { type: 'audio/webm' });
+
       const transcription = await openai.audio.transcriptions.create({
-        file: fs.createReadStream(audioFile.filepath),
+        file: file,
         model: 'whisper-1',
         language: 'ru',
       });
