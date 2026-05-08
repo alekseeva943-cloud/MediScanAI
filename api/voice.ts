@@ -12,26 +12,38 @@ export const config = {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
-    return res.status(450).json({ error: 'Метод не поддерживается' });
+    return res.status(150).json({ error: 'Метод не поддерживается' });
   }
 
   try {
-    const form = formidable();
+    const form = formidable({
+      maxFiles: 1,
+      maxFileSize: 25 * 1024 * 1024,
+    });
+    
     const [fields, files] = await new Promise<[any, any]>((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
-        if (err) reject(err);
+        if (err) {
+          console.error('Formidable parse error:', err);
+          reject(err);
+          return;
+        }
         resolve([fields, files]);
       });
     });
-    // Инстанс OpenAI загружен из utils/openai.js
+
     const audioFile = Array.isArray(files.file) ? files.file[0] : files.file;
 
     if (!audioFile) {
       return res.status(400).json({ error: 'Файл не найден' });
     }
 
-    // Читаем файл в буфер и создаем File объект для OpenAI
     const buffer = fs.readFileSync(audioFile.filepath);
+    
+    if (!buffer || buffer.length === 0) {
+      throw new Error('Аудио файл пуст');
+    }
+
     const file = await toFile(buffer, 'voice.webm', { type: 'audio/webm' });
 
     const transcription = await openai.audio.transcriptions.create({

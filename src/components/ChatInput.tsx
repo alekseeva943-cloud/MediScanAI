@@ -70,22 +70,34 @@ export const ChatInput = ({ onSend, isLoading, suggestions }: ChatInputProps) =>
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      
+      // Определяем поддерживаемый формат
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 
+                      MediaRecorder.isTypeSupported('audio/ogg') ? 'audio/ogg' : '';
+      
+      const options = mimeType ? { mimeType } : {};
+      const mediaRecorder = new MediaRecorder(stream, options);
+      
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
 
       mediaRecorder.onstop = () => {
         if (audioChunksRef.current.length > 0) {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          if (audioBlob.size > 100) { // Проверяем, что это не пустой клик
+          const blobMime = mimeType || 'audio/webm';
+          const audioBlob = new Blob(audioChunksRef.current, { type: blobMime });
+          if (audioBlob.size > 500) { // Игнорируем слишком короткие записи
             onSend('', undefined, audioBlob);
           }
         }
         setIsRecording(false);
+        // Очищаем стрим
+        stream.getTracks().forEach(track => track.stop());
       };
 
       mediaRecorder.start();

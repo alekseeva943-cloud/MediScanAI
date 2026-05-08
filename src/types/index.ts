@@ -2,6 +2,7 @@ export type DangerLevel = 'low' | 'medium' | 'high';
 
 export interface AIResponse {
   summary: string;
+  is_analysis_needed?: boolean;
   possible_risks: string[];
   recommendations: string[];
   danger_level: DangerLevel;

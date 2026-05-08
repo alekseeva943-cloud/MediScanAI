@@ -86,14 +86,16 @@ export const MessageList = ({ messages, isLoading }: { messages: Message[], isLo
               ))}
 
             <div className="prose prose-sm prose-slate max-w-none">
-                {!message.ai_data && (
+                {(!message.ai_data || message.ai_data.is_analysis_needed === false) && (
                   <div className={cn(message.content === 'Голосовое сообщение...' && "italic opacity-50 text-xs")}>
                     <ReactMarkdown>{message.content}</ReactMarkdown>
                   </div>
                 )}
               </div>
 
-              {message.ai_data && <MedicalAnalysis data={message.ai_data} />}
+              {message.ai_data && message.ai_data.is_analysis_needed !== false && (
+                <MedicalAnalysis data={message.ai_data} />
+              )}
             </div>
             <span className="text-[10px] text-slate-400 px-1">{formatTime(new Date(message.timestamp))}</span>
           </div>

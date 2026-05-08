@@ -35,9 +35,8 @@ export default function App() {
     try {
       let finalContent = text;
 
-      // Если это голосовое — сначала расшифровываем
+      // Если это голосовое — сначала расшифровываем (без общего лоадера бота)
       if (audioBlob) {
-        setLoading(true, 'Расшифровка аудио');
         try {
           finalContent = await apiService.transcribeVoice(audioBlob);
           // Check if we still have messages (wasn't cleared)
@@ -48,21 +47,23 @@ export default function App() {
           }
         } catch (err: any) {
           if (useChatStore.getState().messages.length > 0) {
-            updateMessage(messageId, { content: '⚠️ Ошибка расшифровки голоса' });
+            updateMessage(messageId, { content: '⚠️ Не удалось расшифровать голос. Попробуйте еще раз.' });
           }
           throw err;
         }
       }
 
-      setLoading(true, image ? 'Анализ изображения' : 'Обработка запроса');
+      // Теперь включаем лоадер бота для генерации ответа
+      setLoading(true, image ? 'Анализ изображения' : 'Подготовка ответа');
 
       const currentMessages = useChatStore.getState().messages;
       if (currentMessages.length === 0) return; // Exit if cleared
 
       const history = currentMessages.map(m => {
-        // Use updated content if it was a voice message
-        const currentContentText = m.id === messageId ? finalContent : (m.content || m.ai_data?.summary || '');
-        const content: any[] = [{ type: 'text', text: currentContentText }];
+        // Используем актуальный текст для текущего сообщения
+        const contentText = m.id === messageId ? finalContent : (m.content || m.ai_data?.summary || '');
+        const content: any[] = [{ type: 'text', text: contentText }];
+        
         if (m.attachments) {
           m.attachments.forEach(att => {
             if (att.type === 'image') {
@@ -73,20 +74,13 @@ export default function App() {
         return { role: m.role, content };
       });
 
-      const currentMessageContent: any[] = [{ type: 'text', text: finalContent }];
-      if (image) {
-        currentMessageContent.push({ type: 'image_url', image_url: { url: image } });
-      }
-
-      history.push({ role: 'user', content: currentMessageContent });
-
       // Step 2: More detailed analysis status
       if (image) {
-        setLoading(true, 'Распознавание медикаментов');
+        setLoading(true, 'Анализ изображения');
         await new Promise(r => setTimeout(r, 800));
         setLoading(true, 'Проверка совместимости');
       } else {
-        setLoading(true, 'Поиск информации');
+        setLoading(true, 'Подготовка ответа');
       }
 
       const aiData = await apiService.chat(history);

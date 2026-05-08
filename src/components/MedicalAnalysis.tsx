@@ -4,15 +4,17 @@ import { AIResponse } from '../types';
 import { cn } from '../lib/utils';
 
 export const MedicalAnalysis = ({ data }: { data: AIResponse }) => {
-  const dangerColors = {
+  const dangerColors: Record<string, string> = {
     low: 'text-green-600 bg-green-50 border-green-200',
     medium: 'text-amber-600 bg-amber-50 border-amber-200',
     high: 'text-red-600 bg-red-50 border-red-200',
   };
 
+  const levelColor = dangerColors[data.danger_level || 'low'] || dangerColors.low;
+
   return (
     <div className="space-y-4 mt-3">
-      <div className={cn("inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border", dangerColors[data.danger_level])}>
+      <div className={cn("inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border", levelColor)}>
         {data.danger_level === 'high' && <ShieldAlert size={14} />}
         {data.danger_level === 'medium' && <AlertCircle size={14} />}
         {data.danger_level === 'low' && <CheckCircle2 size={14} />}

@@ -40,21 +40,38 @@ async function startServer() {
 
   // Local mirror of /api/voice
   app.post('/api/voice', async (req, res) => {
+    console.log('Voice request received');
     try {
-      const form = formidable();
+      const form = formidable({
+        maxFiles: 1,
+        maxFileSize: 25 * 1024 * 1024, // 25MB
+      });
+      
       const [fields, files] = await new Promise<[any, any]>((resolve, reject) => {
         form.parse(req, (err, fields, files) => {
-          if (err) reject(err);
+          if (err) {
+            console.error('Formidable parse error:', err);
+            reject(err);
+            return;
+          }
           resolve([fields, files]);
         });
       });
+
       const audioFile = Array.isArray(files.file) ? files.file[0] : files.file;
 
       if (!audioFile) {
+        console.error('No audio file found in multipart request');
         return res.status(400).json({ error: 'No audio file' });
       }
 
+      console.log('Processing audio file:', audioFile.filepath);
       const buffer = fs.readFileSync(audioFile.filepath);
+      
+      if (!buffer || buffer.length === 0) {
+        throw new Error('Audio buffer is empty');
+      }
+
       const file = await toFile(buffer, 'voice.webm', { type: 'audio/webm' });
 
       const transcription = await openai.audio.transcriptions.create({
@@ -62,10 +79,15 @@ async function startServer() {
         model: 'whisper-1',
         language: 'ru',
       });
-      res.json({ text: transcription.text });
+      
+      console.log('Transcription successful');
+      res.status(200).json({ text: transcription.text });
     } catch (error: any) {
-      console.error('Local Voice Error:', error);
-      res.status(500).json({ error: error.message });
+      console.error('Local Voice Error Details:', error);
+      res.status(500).json({ 
+        error: error.message || 'Unknown voice processing error',
+        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined 
+      });
     }
   });
 
