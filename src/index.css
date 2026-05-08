@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
 @theme {
-  --color-medical-bg: #f8fafc;
-  --color-medical-primary: #2563eb;
-  --color-medical-secondary: #64748b;
-  --color-glass: rgba(255, 255, 255, 0.7);
+  --color-medical-bg: #fcfdfe;
+  --color-medical-primary: #7c3aed;
+  --color-medical-accent: #0f766e;
+  --color-glass: rgba(255, 255, 255, 0.8);
 }
 
 @layer base {
   body {
-    @apply bg-medical-bg text-slate-900 font-sans selection:bg-blue-100;
+    @apply bg-medical-bg text-slate-800 font-sans selection:bg-indigo-100;
   }
 }
 
 .glass {
-  @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-slate-200/40;
+  @apply bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl shadow-slate-200/30;
 }
 
 .message-user {
-  @apply bg-medical-primary text-white rounded-2xl rounded-tr-sm;
+  @apply bg-violet-50 text-violet-900 border border-violet-100/50 rounded-2xl rounded-tr-sm;
 }
 
 .message-ai {

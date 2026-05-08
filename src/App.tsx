@@ -76,9 +76,9 @@ export default function App() {
 
       // Step 2: More detailed analysis status
       if (image) {
-        setLoading(true, 'Анализ изображения');
+        setLoading(true, 'Анализ фото');
         await new Promise(r => setTimeout(r, 800));
-        setLoading(true, 'Проверка совместимости');
+        setLoading(true, 'Обработка фото');
       } else {
         setLoading(true, 'Подготовка ответа');
       }
@@ -87,7 +87,7 @@ export default function App() {
       
       if (useChatStore.getState().messages.length === 0) return; // Exit if cleared
       
-      setLoading(true, 'Генерация рекомендаций');
+      setLoading(true, 'Завершение');
       
       const assistantMessage: Message = {
         id: nanoid(),
@@ -108,7 +108,7 @@ export default function App() {
   }, [messages, addMessage, updateMessage, setLoading, setError]);
 
   return (
-    <div className="flex flex-col h-screen max-w-2xl mx-auto bg-slate-50 shadow-2xl relative overflow-hidden">
+    <div className="flex flex-col h-screen max-w-2xl mx-auto bg-white shadow-2xl relative overflow-hidden">
       {/* Error Banner */}
       <AnimatePresence>
         {error && (
@@ -130,23 +130,23 @@ export default function App() {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="px-5 py-4 glass border-b border-white/40 flex items-center justify-between z-20">
+      <header className="px-5 py-5 bg-[#131b2e] border-b border-white/5 flex items-center justify-between z-20 shadow-lg">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
-            <Bot size={20} />
+          <div className="w-10 h-10 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl flex items-center justify-center text-white shadow-xl">
+            <Bot size={20} className="text-teal-200" />
           </div>
           <div>
-            <h1 className="text-base font-bold text-slate-800">AI Фармацевт</h1>
+            <h1 className="text-base font-bold text-white tracking-tight">AI Фармацевт</h1>
             <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">ИИ ассистент онлайн</span>
+              <div className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-pulse shadow-sm shadow-teal-400/50" />
+              <span className="text-[10px] text-teal-100/60 font-semibold uppercase tracking-widest">Online Assistant</span>
             </div>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" className="flex items-center gap-2 px-3 hover:bg-red-50 hover:text-red-600 transition-colors" onClick={clearHistory}>
+          <Button variant="ghost" className="flex items-center gap-2 px-3 text-indigo-100 hover:bg-white/10 hover:text-white transition-all rounded-xl" onClick={clearHistory}>
             <Trash2 size={16} />
-            <span className="hidden sm:inline text-xs font-semibold">Очистить</span>
+            <span className="hidden sm:inline text-xs font-bold uppercase tracking-tight">Очистить</span>
           </Button>
         </div>
       </header>

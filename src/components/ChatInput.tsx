@@ -7,6 +7,7 @@ import { Message, AIResponse } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useChatStore } from '../store/useChatStore';
+import { CameraModal } from './CameraModal';
 
 const VoiceWaveform = () => {
   return (
@@ -41,8 +42,8 @@ export const ChatInput = ({ onSend, isLoading, suggestions }: ChatInputProps) =>
   const [image, setImage] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -136,12 +137,18 @@ export const ChatInput = ({ onSend, isLoading, suggestions }: ChatInputProps) =>
         )}
       </AnimatePresence>
 
+      <CameraModal 
+        isOpen={isCameraOpen} 
+        onClose={() => setIsCameraOpen(false)} 
+        onCapture={(dataUrl) => setImage(dataUrl)} 
+      />
+
       {image && (
         <div className="relative inline-block">
-          <img src={image} alt="Preview" className="w-20 h-20 object-cover rounded-xl border-2 border-blue-500" />
+          <img src={image} alt="Preview" className="w-20 h-20 object-cover rounded-xl border-2 border-indigo-200" />
           <button 
             onClick={() => setImage(null)}
-            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600"
+            className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1 shadow-md hover:bg-slate-900"
           >
             <X size={12} />
           </button>
@@ -155,15 +162,6 @@ export const ChatInput = ({ onSend, isLoading, suggestions }: ChatInputProps) =>
           accept="image/*" 
           className="hidden" 
           ref={fileInputRef} 
-          onChange={handleImageUpload}
-        />
-        {/* Инпут для камеры */}
-        <input 
-          type="file" 
-          accept="image/*" 
-          capture="environment"
-          className="hidden" 
-          ref={cameraInputRef} 
           onChange={handleImageUpload}
         />
 
@@ -182,7 +180,7 @@ export const ChatInput = ({ onSend, isLoading, suggestions }: ChatInputProps) =>
           type="button" 
           variant="ghost" 
           className="rounded-full w-11 h-11 p-0 shrink-0"
-          onClick={() => cameraInputRef.current?.click()}
+          onClick={() => setIsCameraOpen(true)}
           disabled={isLoading || isRecording}
           title="Сделать фото"
         >
@@ -204,7 +202,7 @@ export const ChatInput = ({ onSend, isLoading, suggestions }: ChatInputProps) =>
           )}
           {isTranscribing && (
             <div className="absolute right-4 top-1/2 -translate-y-1/2">
-              <Loader2 size={18} className="animate-spin text-blue-500" />
+              <Loader2 size={18} className="animate-spin text-indigo-500" />
             </div>
           )}
         </div>
@@ -219,14 +217,13 @@ export const ChatInput = ({ onSend, isLoading, suggestions }: ChatInputProps) =>
         >
           {isRecording ? <StopCircle size={20} /> : <Mic size={20} className="text-slate-500" />}
         </Button>
-
-        <Button 
-          type="submit" 
-          className="rounded-full w-11 h-11 p-0 shrink-0 shadow-lg shadow-blue-200"
-          disabled={(!text.trim() && !image) || isLoading || isRecording}
-        >
-          <Send size={20} />
-        </Button>
+         <Button 
+           type="submit" 
+           className="rounded-full w-11 h-11 p-0 shrink-0 shadow-lg shadow-teal-100 bg-teal-600 hover:bg-teal-700 text-white"
+           disabled={(!text.trim() && !image) || isLoading || isRecording}
+         >
+           <Send size={20} />
+         </Button>
       </form>
     </div>
   );

@@ -33,7 +33,7 @@ export const MessageList = ({ messages, isLoading }: { messages: Message[], isLo
     <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-8 scrollbar-hide">
       {messages.length === 0 && (
         <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-50">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+          <div className="w-16 h-16 bg-teal-50 rounded-full flex items-center justify-center text-teal-600">
             <Bot size={32} />
           </div>
           <div>
@@ -50,12 +50,12 @@ export const MessageList = ({ messages, isLoading }: { messages: Message[], isLo
           animate={{ opacity: 1, y: 0 }}
           className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
         >
-          <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center ${message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+          <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center ${message.role === 'user' ? 'bg-blue-50 text-blue-500' : 'bg-slate-100 text-slate-500'}`}>
             {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
           </div>
           
           <div className={`max-w-[85%] space-y-1 ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
-            <div className={`p-4 shadow-sm ${message.role === 'user' ? 'message-user' : 'message-ai'}`}>
+            <div className={`p-4 ${message.role === 'user' ? 'message-user shadow-sm shadow-violet-100/50' : 'message-ai'}`}>
               
               {message.attachments?.map((att, i) => (
                 <div key={i} className="mb-3">
@@ -107,14 +107,14 @@ export const MessageList = ({ messages, isLoading }: { messages: Message[], isLo
           <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
             <Bot size={16} className="text-blue-500 animate-bounce" />
           </div>
-          <div className="message-ai p-4 space-y-2 min-w-[140px] border-blue-100 bg-blue-50/50">
-            <div className="flex items-center gap-2 text-xs font-medium text-blue-600">
+          <div className="message-ai p-4 space-y-2 min-w-[140px] border-emerald-100 bg-emerald-50/30">
+            <div className="flex items-center gap-2 text-xs font-semibold text-teal-700">
               <Loader2 size={12} className="animate-spin" />
               <span>{status || 'Обработка'}<Dots /></span>
             </div>
             <div className="space-y-1.5">
-              <div className="h-1.5 bg-blue-200/50 rounded w-full animate-pulse-soft"></div>
-              <div className="h-1.5 bg-blue-200/50 rounded w-2/3 animate-pulse-soft"></div>
+              <div className="h-1.5 bg-teal-200/30 rounded w-full animate-pulse-soft"></div>
+              <div className="h-1.5 bg-teal-200/30 rounded w-2/3 animate-pulse-soft"></div>
             </div>
           </div>
         </motion.div>
