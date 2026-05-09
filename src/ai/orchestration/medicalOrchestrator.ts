@@ -1,8 +1,8 @@
-// src/ai/orchestration/medicalOrchestrator.ts
+  // src/ai/orchestration/medicalOrchestrator.ts
 
-// ESM: keep explicit .js extensions for runtime imports after TypeScript transpilation.
+  // ESM: keep explicit .js extensions for runtime imports after TypeScript transpilation.
 
-import { OpenAIProvider } from "../providers/openaiProvider.js";
+ import { OpenAIProvider } from "../providers/openaiProvider.js";
 
 import { MedicalRouter } from "../router/medicalRouter.js";
 
@@ -310,16 +310,45 @@ ${lastAnalysis.probableDiagnoses
 
         break;
 
+      // -----------------------------------
+      // STRICT INTERVIEW MODE
+      // -----------------------------------
+
       case ResponseMode.CLARIFICATION_MODE:
 
         systemInstruction += `
 
-You are in clarification mode.
+You are now in STRICT MEDICAL INTERVIEW MODE.
 
-Ask ONLY these questions:
+CRITICAL RULES:
 
+- Ask ONLY ONE short medical question.
+- Never ask multiple questions at once.
+- Never write long explanations.
+- Never write diagnosis assumptions.
+- Never generate large text blocks.
+- Keep the message under 25 words.
+- Focus ONLY on the single most important next question.
+- Behave like a calm medical assistant.
+- Questions must feel natural and conversational.
+
+You MUST ask questions sequentially.
+
+Good example:
+"Когда появились симптомы?"
+
+Bad example:
+"Когда появились симптомы? Есть ли температура? Была ли травма?"
+
+IMPORTANT:
+At the end of the message ALWAYS add short answer suggestions.
+
+Example:
+Сегодня / Вчера / Несколько дней / Давно
+
+INTERVIEW CONTEXT:
 ${decision.clarificationQuestions
-  .slice(0, 5)
+  .slice(0, 10)
   .join("\n")}
 `;
 
