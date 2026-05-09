@@ -1,15 +1,15 @@
 // src/ai/orchestration/medicalOrchestrator.ts
-import { OpenAIProvider } from "../providers/openaiProvider.js";
-import { MedicalRouter } from "../router/medicalRouter.js";
-import { SYSTEM_PROMPT } from "../prompts/systemPrompt.js";
-import { ANALYSIS_PROMPT } from "../prompts/analysisPrompt.js";
-import { UPDATE_ANALYSIS_PROMPT } from "../prompts/updateAnalysisPrompt.js";
+import { OpenAIProvider } from "../providers/openaiProvider";
+import { MedicalRouter } from "../router/medicalRouter";
+import { SYSTEM_PROMPT } from "../prompts/systemPrompt";
+import { ANALYSIS_PROMPT } from "../prompts/analysisPrompt";
+import { UPDATE_ANALYSIS_PROMPT } from "../prompts/updateAnalysisPrompt";
 import { 
   ResponseMode, 
   MedicalMemory, 
   AnalysisSnapshot, 
   RouterDecision 
-} from "../types/index.js";
+} from "../types";
 
 export class MedicalOrchestrator {
   private provider: OpenAIProvider;
