@@ -51,8 +51,6 @@ export default function App() {
 
     setLastAnalysis,
 
-    setInterviewState,
-
     resetInterview
 
   } = useChatStore();
@@ -69,6 +67,138 @@ export default function App() {
     ]?.ai_data;
 
   }, [messages]);
+
+  // -------------------------
+  // SMART QUICK REPLIES
+  // -------------------------
+
+  const buildQuickReplies = (
+    text: string
+  ): string[] => {
+
+    const lower =
+      text.toLowerCase();
+
+    // WHEN STARTED
+
+    if (
+      lower.includes('когда') ||
+      lower.includes('началась')
+    ) {
+
+      return [
+        'Сегодня',
+        'Вчера',
+        'Несколько дней',
+        'После тренировки',
+        'Давно',
+        'Пропустить'
+      ];
+    }
+
+    // PAIN TYPE
+
+    if (
+      lower.includes('острая') ||
+      lower.includes('тянущая') ||
+      lower.includes('боль')
+    ) {
+
+      return [
+        'Острая',
+        'Ноющая',
+        'Тянущая',
+        'Пульсирующая',
+        'Только при движении',
+        'Пропустить'
+      ];
+    }
+
+    // PAIN SCALE
+
+    if (
+      lower.includes('шкале') ||
+      lower.includes('1 до 10')
+    ) {
+
+      return [
+        '1-3',
+        '4-6',
+        '7-8',
+        '9-10',
+        'Трудно оценить',
+        'Пропустить'
+      ];
+    }
+
+    // SWELLING
+
+    if (
+      lower.includes('отек')
+    ) {
+
+      return [
+        'Да',
+        'Нет',
+        'Немного',
+        'Сильный отек',
+        'Не уверен',
+        'Пропустить'
+      ];
+    }
+
+    // TEMPERATURE
+
+    if (
+      lower.includes('температур')
+    ) {
+
+      return [
+        'Нет',
+        '37-38',
+        '38+',
+        'Озноб',
+        'Не измерял',
+        'Пропустить'
+      ];
+    }
+
+    // DEFAULT
+
+    return [
+      'Подробнее',
+      'Загрузить фото',
+      'Есть анализы',
+      'Есть лекарства',
+      'Уточнить симптомы',
+      'Пропустить'
+    ];
+  };
+
+  // -------------------------
+  // EXTRACT SINGLE QUESTION
+  // -------------------------
+
+  const extractSingleQuestion = (
+    text: string
+  ): string => {
+
+    const lines = text
+      .split('\n')
+      .map(l => l.trim())
+      .filter(Boolean);
+
+    const question =
+      lines.find(
+        l =>
+          l.includes('?')
+      );
+
+    return (
+      question ||
+      text
+    );
+  };
 
   // -------------------------
   // SEND MESSAGE
@@ -354,36 +484,10 @@ export default function App() {
       }
 
       // -------------------------
-      // INTERVIEW FLOW
+      // RESET INTERVIEW
       // -------------------------
 
-      if (
-        decision.mode ===
-        'CLARIFICATION_MODE'
-      ) {
-
-        setInterviewState({
-
-          active: true,
-
-          currentStep:
-            decision.clarificationQuestions?.length
-              ? 1
-              : 0,
-
-          totalSteps:
-            decision.clarificationQuestions?.length || 0,
-
-          currentQuestion:
-            decision.clarificationQuestions?.[0] || '',
-
-          collectedAnswers: []
-        });
-
-      } else {
-
-        resetInterview();
-      }
+      resetInterview();
 
       // -------------------------
       // SAFETY
@@ -408,7 +512,47 @@ export default function App() {
 
       let aiData: AIResponse;
 
+      // -------------------------
+      // CLARIFICATION MODE
+      // -------------------------
+
       if (
+        decision.mode ===
+        'CLARIFICATION_MODE'
+      ) {
+
+        const singleQuestion =
+          extractSingleQuestion(aiText);
+
+        aiData = {
+
+          summary:
+            singleQuestion,
+
+          possible_risks: [],
+
+          recommendations: [],
+
+          danger_level:
+            decision.emergencyLevel,
+
+          suggested_actions: [],
+
+          quick_replies:
+            buildQuickReplies(
+              singleQuestion
+            ),
+
+          medical_warning: "",
+
+          render_mode:
+            decision.mode,
+
+          router_decision:
+            decision
+        };
+
+      } else if (
 
         decision.mode ===
           'FULL_MEDICAL_ANALYSIS'
@@ -500,8 +644,7 @@ export default function App() {
 
           suggested_actions: [],
 
-          quick_replies:
-            decision.clarificationQuestions || [],
+          quick_replies: [],
 
           medical_warning: "",
 
@@ -568,8 +711,6 @@ export default function App() {
     setMedicalMemory,
 
     setLastAnalysis,
-
-    setInterviewState,
 
     resetInterview
   ]);
