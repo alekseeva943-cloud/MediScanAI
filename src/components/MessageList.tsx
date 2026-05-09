@@ -290,26 +290,10 @@ export const MessageList = ({
 
                 {isClarification ? (
 
-                  <div className="space-y-4">
+                  <div className="space-y-3">
 
-                    <div className="flex items-center justify-between">
-
-                      <div>
-
-                        <div className="text-[11px] uppercase tracking-widest font-bold text-amber-600">
-                          Медицинское уточнение
-                        </div>
-
-                        <div className="text-xs text-slate-500 mt-1">
-                          Ответьте на вопрос или выберите вариант ниже
-                        </div>
-
-                      </div>
-
-                      <div className="text-xs font-semibold text-slate-400">
-                        Шаг
-                      </div>
-
+                    <div className="text-[11px] uppercase tracking-widest font-bold text-amber-600">
+                      Уточнение симптомов
                     </div>
 
                     <div className="text-base font-medium text-slate-800 leading-relaxed">
