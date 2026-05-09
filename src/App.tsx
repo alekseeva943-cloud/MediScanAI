@@ -73,87 +73,242 @@ export default function App() {
   }, [messages]);
 
   // -------------------------
-  // CLARIFICATION FLOW
+  // SYMPTOM FLOWS
   // -------------------------
 
-  const clarificationFlow = [
+  const symptomFlows = {
 
-    {
-      id: 'pain_start',
-      question: 'Когда началась боль?',
-      replies: [
-        'Сегодня',
-        'Вчера',
-        'Несколько дней',
-        'После тренировки',
-        'Давно',
-        'Пропустить'
-      ]
-    },
+    knee: [
 
-    {
-      id: 'pain_type',
-      question: 'Какая это боль?',
-      replies: [
-        'Острая',
-        'Ноющая',
-        'Тянущая',
-        'Пульсирующая',
-        'Только при движении',
-        'Пропустить'
-      ]
-    },
+      {
+        id: 'pain_start',
+        question: 'Когда началась боль?',
+        replies: [
+          'Сегодня',
+          'Вчера',
+          'Несколько дней',
+          'После тренировки',
+          'Давно',
+          'Пропустить'
+        ]
+      },
 
-    {
-      id: 'pain_scale',
-      question: 'Насколько сильная боль?',
-      replies: [
-        '1-3',
-        '4-6',
-        '7-8',
-        '9-10',
-        'Трудно оценить',
-        'Пропустить'
-      ]
-    },
+      {
+        id: 'pain_type',
+        question: 'Какая это боль?',
+        replies: [
+          'Острая',
+          'Ноющая',
+          'Тянущая',
+          'Пульсирующая',
+          'Только при движении',
+          'Пропустить'
+        ]
+      },
 
-    {
-      id: 'swelling',
-      question: 'Есть ли отек?',
-      replies: [
-        'Да',
-        'Нет',
-        'Немного',
-        'Сильный',
-        'Не уверен',
-        'Пропустить'
-      ]
-    },
+      {
+        id: 'swelling',
+        question: 'Есть ли отек?',
+        replies: [
+          'Да',
+          'Нет',
+          'Немного',
+          'Сильный',
+          'Пропустить'
+        ]
+      },
 
-    {
-      id: 'injury',
-      question: 'Была ли травма?',
-      replies: [
-        'Да',
-        'Нет',
-        'После спорта',
-        'После падения',
-        'После нагрузки',
-        'Пропустить'
-      ]
+      {
+        id: 'injury',
+        question: 'Была ли травма?',
+        replies: [
+          'Да',
+          'Нет',
+          'После спорта',
+          'После падения',
+          'После нагрузки',
+          'Пропустить'
+        ]
+      }
+    ],
+
+    rectal: [
+
+      {
+        id: 'burning',
+        question: 'Есть жжение или зуд?',
+        replies: [
+          'Да',
+          'Нет',
+          'Сильное жжение',
+          'Только после туалета',
+          'Пропустить'
+        ]
+      },
+
+      {
+        id: 'blood',
+        question: 'Есть кровь?',
+        replies: [
+          'Да',
+          'Нет',
+          'Немного',
+          'Яркая кровь',
+          'Темная кровь',
+          'Пропустить'
+        ]
+      },
+
+      {
+        id: 'spicy_food',
+        question: 'Ели острое или алкоголь?',
+        replies: [
+          'Острое',
+          'Алкоголь',
+          'И то и другое',
+          'Нет',
+          'Пропустить'
+        ]
+      }
+    ],
+
+    stomach: [
+
+      {
+        id: 'nausea',
+        question: 'Есть тошнота?',
+        replies: [
+          'Да',
+          'Нет',
+          'Иногда',
+          'После еды',
+          'Пропустить'
+        ]
+      },
+
+      {
+        id: 'temperature',
+        question: 'Есть температура?',
+        replies: [
+          'Нет',
+          '37-38',
+          '38+',
+          'Не измерял',
+          'Пропустить'
+        ]
+      }
+    ],
+
+    default: [
+
+      {
+        id: 'details',
+        question: 'Расскажите подробнее о симптомах',
+        replies: [
+          'Добавить детали',
+          'Есть анализы',
+          'Загрузить фото',
+          'Пропустить'
+        ]
+      }
+    ]
+  };
+
+  // -------------------------
+  // DETECT SYMPTOM TYPE
+  // -------------------------
+
+  const detectSymptomType = (
+    input: string
+  ) => {
+
+    const lower =
+      input.toLowerCase();
+
+    if (
+
+      lower.includes('колен')
+
+      ||
+
+      lower.includes('нога')
+
+      ||
+
+      lower.includes('сустав')
+
+    ) {
+
+      return 'knee';
     }
-  ];
+
+    if (
+
+      lower.includes('очко')
+
+      ||
+
+      lower.includes('анус')
+
+      ||
+
+      lower.includes('жоп')
+
+      ||
+
+      lower.includes('зад')
+
+      ||
+
+      lower.includes('горит')
+
+    ) {
+
+      return 'rectal';
+    }
+
+    if (
+
+      lower.includes('живот')
+
+      ||
+
+      lower.includes('желуд')
+
+      ||
+
+      lower.includes('тошнит')
+
+    ) {
+
+      return 'stomach';
+    }
+
+    return 'default';
+  };
 
   // -------------------------
   // NEXT QUESTION
   // -------------------------
 
-  const getNextQuestion = () => {
+  const getNextQuestion = (
+    symptomType: string
+  ) => {
+
+    const flow =
+
+      symptomFlows[
+        symptomType as keyof typeof symptomFlows
+      ]
+
+      ||
+
+      symptomFlows.default;
 
     const asked =
       interviewState?.askedQuestions || [];
 
-    return clarificationFlow.find(
+    return flow.find(
       q => !asked.includes(q.id)
     );
   };
@@ -203,16 +358,16 @@ export default function App() {
         image
 
           ? [{
-              type: 'image',
-              url: image
-            }]
+            type: 'image',
+            url: image
+          }]
 
           : audioBlob
 
             ? [{
-                type: 'voice',
-                url: 'voice.webm'
-              }]
+              type: 'voice',
+              url: 'voice.webm'
+            }]
 
             : undefined,
     };
@@ -278,113 +433,284 @@ export default function App() {
       }
 
       // -------------------------
-      // LOADING
+      // LOCAL INTERVIEW FLOW
+      // -------------------------
+
+      if (
+        interviewState.active
+      ) {
+
+        const currentType =
+          interviewState.symptomContext || 'default';
+
+        const currentFlow =
+
+          symptomFlows[
+            currentType as keyof typeof symptomFlows
+          ]
+
+          ||
+
+          symptomFlows.default;
+
+        const currentQuestion =
+          currentFlow[
+            interviewState.currentStep
+          ];
+
+        const updatedAsked = [
+
+          ...(interviewState.askedQuestions || []),
+
+          currentQuestion?.id
+        ];
+
+        const nextQuestion =
+          currentFlow.find(
+            q => !updatedAsked.includes(q.id)
+          );
+
+        // -------------------------
+        // SAVE ANSWER
+        // -------------------------
+
+        setInterviewState({
+
+          askedQuestions:
+            updatedAsked,
+
+          collectedAnswers: [
+
+            {
+              question:
+                currentQuestion?.question,
+
+              answer: text
+            }
+          ],
+
+          skippedQuestions:
+
+            text === 'Пропустить'
+
+              ? [
+                currentQuestion?.id
+              ]
+
+              : []
+        });
+
+        // -------------------------
+        // FINISH FLOW
+        // -------------------------
+
+        if (!nextQuestion) {
+
+          resetInterview();
+
+          const assistantMessage: Message = {
+
+            id: nanoid(),
+
+            role: 'assistant',
+
+            content:
+              'Спасибо. Информации достаточно для предварительной оценки.',
+
+            timestamp: Date.now(),
+
+            ai_data: {
+
+              summary:
+                'Спасибо. Информации достаточно для предварительной оценки.',
+
+              possible_risks: [],
+
+              recommendations: [],
+
+              danger_level: 'low',
+
+              suggested_actions: [],
+
+              quick_replies: [
+                'Показать предварительный отчет',
+                'Добавить симптомы',
+                'Загрузить фото',
+                'Прикрепить анализы'
+              ],
+
+              medical_warning: '',
+
+              render_mode:
+                'PRELIMINARY_ANALYSIS'
+            }
+          };
+
+          addMessage(
+            assistantMessage
+          );
+
+          return;
+        }
+
+        // -------------------------
+        // NEXT QUESTION
+        // -------------------------
+
+        setInterviewState({
+
+          currentStep:
+            interviewState.currentStep + 1,
+
+          currentQuestion:
+            nextQuestion.question
+        });
+
+        const assistantMessage: Message = {
+
+          id: nanoid(),
+
+          role: 'assistant',
+
+          content:
+            nextQuestion.question,
+
+          timestamp: Date.now(),
+
+          ai_data: {
+
+            summary:
+              nextQuestion.question,
+
+            possible_risks: [],
+
+            recommendations: [],
+
+            danger_level: 'low',
+
+            suggested_actions: [],
+
+            quick_replies:
+              nextQuestion.replies,
+
+            medical_warning: '',
+
+            render_mode:
+              'CLARIFICATION_MODE'
+          }
+        };
+
+        addMessage(
+          assistantMessage
+        );
+
+        return;
+      }
+
+      // -------------------------
+      // START INTERVIEW
+      // -------------------------
+
+      const symptomType =
+        detectSymptomType(
+          finalContent
+        );
+
+      const firstQuestion =
+        getNextQuestion(
+          symptomType
+        );
+
+      if (
+        firstQuestion &&
+        symptomType !== 'default'
+      ) {
+
+        setInterviewState({
+
+          active: true,
+
+          currentStep: 0,
+
+          totalSteps:
+
+            symptomFlows[
+              symptomType as keyof typeof symptomFlows
+            ].length,
+
+          currentQuestion:
+            firstQuestion.question,
+
+          askedQuestions: [],
+
+          collectedAnswers: [],
+
+          skippedQuestions: [],
+
+          symptomContext:
+            symptomType
+        });
+
+        const assistantMessage: Message = {
+
+          id: nanoid(),
+
+          role: 'assistant',
+
+          content:
+            firstQuestion.question,
+
+          timestamp: Date.now(),
+
+          ai_data: {
+
+            summary:
+              firstQuestion.question,
+
+            possible_risks: [],
+
+            recommendations: [],
+
+            danger_level: 'low',
+
+            suggested_actions: [],
+
+            quick_replies:
+              firstQuestion.replies,
+
+            medical_warning: '',
+
+            render_mode:
+              'CLARIFICATION_MODE'
+          }
+        };
+
+        addMessage(
+          assistantMessage
+        );
+
+        return;
+      }
+
+      // -------------------------
+      // API
       // -------------------------
 
       setLoading(
-
         true,
-
         image
           ? 'Анализ изображения'
           : 'Подготовка ответа'
       );
 
-      const currentMessages =
+      const history =
         useChatStore
           .getState()
-          .messages;
-
-      if (
-        currentMessages.length === 0
-      ) {
-        return;
-      }
-
-      // -------------------------
-      // BUILD HISTORY
-      // -------------------------
-
-      const history =
-        currentMessages.map(m => {
-
-          const contentText =
-
-            m.id === messageId
-
-              ? finalContent
-
-              : (
-                  m.content ||
-                  m.ai_data?.summary ||
-                  ''
-                );
-
-          const content: any[] = [
-
-            {
-              type: 'text',
-              text: contentText
-            }
-          ];
-
-          if (m.attachments) {
-
-            m.attachments.forEach(att => {
-
-              if (att.type === 'image') {
-
-                content.push({
-
-                  type: 'image_url',
-
-                  image_url: {
-                    url: att.url
-                  }
-                });
-              }
-            });
-          }
-
-          return {
-
+          .messages
+          .map(m => ({
             role: m.role,
-
-            content
-          };
-        });
-
-      // -------------------------
-      // STATUS
-      // -------------------------
-
-      if (image) {
-
-        setLoading(
-          true,
-          'Анализ фото'
-        );
-
-        await new Promise(
-          r => setTimeout(r, 800)
-        );
-
-        setLoading(
-          true,
-          'Обработка фото'
-        );
-
-      } else {
-
-        setLoading(
-          true,
-          'Подготовка ответа'
-        );
-      }
-
-      // -------------------------
-      // STORE
-      // -------------------------
+            content: m.content
+          }));
 
       const medicalMemory =
         useChatStore
@@ -395,10 +721,6 @@ export default function App() {
         useChatStore
           .getState()
           .lastAnalysis;
-
-      // -------------------------
-      // API
-      // -------------------------
 
       const {
 
@@ -419,20 +741,12 @@ export default function App() {
         lastAnalysis
       );
 
-      // -------------------------
-      // MEMORY
-      // -------------------------
-
       if (updatedMemory) {
 
         setMedicalMemory(
           updatedMemory
         );
       }
-
-      // -------------------------
-      // ANALYSIS
-      // -------------------------
 
       if (updatedAnalysis) {
 
@@ -441,259 +755,29 @@ export default function App() {
         );
       }
 
-      // -------------------------
-      // RESET FLOW
-      // -------------------------
+      let aiData: AIResponse = {
 
-      if (
-        decision.mode !==
-        'CLARIFICATION_MODE'
-      ) {
+        summary: aiText,
 
-        resetInterview();
-      }
+        possible_risks: [],
 
-      // -------------------------
-      // SAFETY
-      // -------------------------
+        recommendations: [],
 
-      if (
-        useChatStore
-          .getState()
-          .messages.length === 0
-      ) {
-        return;
-      }
+        danger_level:
+          decision?.emergencyLevel || 'low',
 
-      setLoading(
-        true,
-        'Завершение'
-      );
+        suggested_actions: [],
 
-      // -------------------------
-      // BUILD AI DATA
-      // -------------------------
+        quick_replies: [],
 
-      let aiData: AIResponse;
+        medical_warning: '',
 
-      // -------------------------
-      // CLARIFICATION MODE
-      // -------------------------
+        render_mode:
+          decision?.mode,
 
-      if (
-        decision.mode ===
-        'CLARIFICATION_MODE'
-      ) {
-
-        const nextQuestion =
-          getNextQuestion();
-
-        if (!nextQuestion) {
-
-          resetInterview();
-
-          aiData = {
-
-            summary:
-              'Спасибо. Информации достаточно для предварительной оценки.',
-
-            possible_risks: [],
-
-            recommendations: [],
-
-            danger_level:
-              decision.emergencyLevel,
-
-            suggested_actions: [],
-
-            quick_replies: [],
-
-            medical_warning: "",
-
-            render_mode:
-              'PRELIMINARY_ANALYSIS',
-
-            router_decision:
-              decision
-          };
-
-        } else {
-
-          setInterviewState({
-
-            active: true,
-
-            currentQuestion:
-              nextQuestion.question,
-
-            currentStep:
-              interviewState.currentStep + 1,
-
-            totalSteps:
-              clarificationFlow.length,
-
-            askedQuestions: [
-              nextQuestion.id
-            ],
-
-            skippedQuestions:
-
-              text === 'Пропустить'
-
-                ? [
-                    interviewState.currentQuestion
-                  ]
-
-                : [],
-
-            collectedAnswers:
-
-              text !== 'Пропустить'
-
-                ? [{
-                    question:
-                      interviewState.currentQuestion,
-
-                    answer: text
-                  }]
-
-                : []
-          });
-
-          aiData = {
-
-            summary:
-              nextQuestion.question,
-
-            possible_risks: [],
-
-            recommendations: [],
-
-            danger_level:
-              decision.emergencyLevel,
-
-            suggested_actions: [],
-
-            quick_replies:
-              nextQuestion.replies,
-
-            medical_warning: "",
-
-            render_mode:
-              decision.mode,
-
-            router_decision:
-              decision
-          };
-        }
-
-      } else if (
-
-        decision.mode ===
-          'FULL_MEDICAL_ANALYSIS'
-
-        ||
-
-        decision.mode ===
-          'ANALYSIS_UPDATE_MODE'
-
-      ) {
-
-        try {
-
-          const parsed = JSON.parse(
-
-            aiText.replace(
-              /```json|```/g,
-              ""
-            )
-          );
-
-          aiData = {
-
-            summary:
-              parsed.summary || aiText,
-
-            possible_risks:
-              parsed.risks || [],
-
-            recommendations:
-              parsed.recommendations || [],
-
-            danger_level:
-              parsed.danger_level || 'low',
-
-            suggested_actions:
-              parsed.suggested_actions || [],
-
-            quick_replies:
-              parsed.quick_replies || [],
-
-            medical_warning: "",
-
-            render_mode:
-              decision.mode,
-
-            router_decision:
-              decision
-          };
-
-        } catch {
-
-          aiData = {
-
-            summary: aiText,
-
-            possible_risks: [],
-
-            recommendations: [],
-
-            danger_level: 'low',
-
-            suggested_actions: [],
-
-            quick_replies: [],
-
-            medical_warning: "",
-
-            render_mode:
-              decision.mode,
-
-            router_decision:
-              decision
-          };
-        }
-
-      } else {
-
-        aiData = {
-
-          summary: aiText,
-
-          possible_risks: [],
-
-          recommendations: [],
-
-          danger_level:
-            decision.emergencyLevel,
-
-          suggested_actions: [],
-
-          quick_replies: [],
-
-          medical_warning: "",
-
-          render_mode:
-            decision.mode,
-
-          router_decision:
-            decision
-        };
-      }
-
-      // -------------------------
-      // ASSISTANT MESSAGE
-      // -------------------------
+        router_decision:
+          decision
+      };
 
       const assistantMessage: Message = {
 
@@ -701,11 +785,11 @@ export default function App() {
 
         role: 'assistant',
 
-        content: aiData.summary,
+        content: aiText,
 
         timestamp: Date.now(),
 
-        ai_data: aiData,
+        ai_data: aiData
       };
 
       addMessage(
