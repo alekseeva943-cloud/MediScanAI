@@ -1,63 +1,44 @@
 // src/ai/types/index.ts
 
-export enum ResponseMode {
-  CASUAL_CONVERSATION = 'CASUAL_CONVERSATION',
-  CLARIFICATION_MODE = 'CLARIFICATION_MODE',
-  PRELIMINARY_ANALYSIS = 'PRELIMINARY_ANALYSIS',
-  FULL_MEDICAL_ANALYSIS = 'FULL_MEDICAL_ANALYSIS',
-  ANALYSIS_UPDATE_MODE = 'ANALYSIS_UPDATE_MODE',
-  EMERGENCY_WARNING_MODE = 'EMERGENCY_WARNING_MODE',
-}
-
 export enum UserIntent {
-  CASUAL_CHAT = 'CASUAL_CHAT',
-  SYMPTOM_ANALYSIS = 'SYMPTOM_ANALYSIS',
-  MEDICATION_CHECK = 'MEDICATION_CHECK',
-  DOCUMENT_ANALYSIS = 'DOCUMENT_ANALYSIS',
-  EMERGENCY_RISK = 'EMERGENCY_RISK',
-  FOLLOW_UP = 'FOLLOW_UP',
+
+  SYMPTOM_ANALYSIS =
+    "SYMPTOM_ANALYSIS",
+
+  CASUAL_CHAT =
+    "CASUAL_CHAT",
+
+  MEDICAL_DOCUMENT_ANALYSIS =
+    "MEDICAL_DOCUMENT_ANALYSIS",
+
+  FOLLOW_UP =
+    "FOLLOW_UP"
 }
 
-export interface MedicalMemory {
-  symptoms: string[];
-  medications: string[];
-  diagnoses: string[];
-  allergies: string[];
-  riskFactors: string[];
-  uploadedDocuments: string[];
-  extractedFacts: string[];
+export enum ResponseMode {
 
-  age?: string;
-  sex?: string;
+  CASUAL_CONVERSATION =
+    "CASUAL_CONVERSATION",
 
-  chronicConditions?: string[];
-  surgeries?: string[];
-  familyHistory?: string[];
+  CLARIFICATION_MODE =
+    "CLARIFICATION_MODE",
+
+  FULL_MEDICAL_ANALYSIS =
+    "FULL_MEDICAL_ANALYSIS",
+
+  ANALYSIS_UPDATE_MODE =
+    "ANALYSIS_UPDATE_MODE",
+
+  EMERGENCY_WARNING_MODE =
+    "EMERGENCY_WARNING_MODE"
 }
 
-export interface AnalysisSnapshot {
-  timestamp: number;
-
-  summary: string;
-
-  probableDiagnoses: string[];
-
-  risks: string[];
-
-  medications: Array<{
-    name: string;
-    action: string;
-    contraindications: string[];
-  }>;
-
-  recommendations: string[];
-
-  dangerLevel: 'low' | 'medium' | 'high';
-
-  suggestedActions: string[];
-}
+// -----------------------------------
+// ROUTER
+// -----------------------------------
 
 export interface RouterDecision {
+
   intent: UserIntent;
 
   mode: ResponseMode;
@@ -66,7 +47,98 @@ export interface RouterDecision {
 
   clarificationQuestions: string[];
 
-  emergencyLevel: 'low' | 'medium' | 'high';
+  emergencyLevel:
+    | "low"
+    | "medium"
+    | "high";
 
   isUpdateToExisting: boolean;
+
+  question?: string;
+
+  quickReplies?: string[];
+
+  interviewCompleted?: boolean;
+}
+
+// -----------------------------------
+// MEMORY
+// -----------------------------------
+
+export interface MedicalMemory {
+
+  symptoms: string[];
+
+  medications: string[];
+
+  diagnoses: string[];
+
+  allergies: string[];
+
+  riskFactors: string[];
+
+  uploadedDocuments: string[];
+
+  extractedFacts: string[];
+
+  chronicConditions: string[];
+
+  surgeries: string[];
+
+  familyHistory: string[];
+
+  age?: string;
+
+  sex?: string;
+}
+
+// -----------------------------------
+// MEDICATION
+// -----------------------------------
+
+export interface MedicationItem {
+
+  name: string;
+
+  action?: string;
+
+  contraindications?: string[];
+}
+
+// -----------------------------------
+// ANALYSIS SNAPSHOT
+// -----------------------------------
+
+export interface AnalysisSnapshot {
+
+  summary: string;
+
+  probableDiagnoses?: string[];
+
+  reasoning?: string[];
+
+  findings?: string[];
+
+  recommendations?: string[];
+
+  risks?: string[];
+
+  medications?: MedicationItem[];
+
+  suggested_actions?: string[];
+
+  quick_replies?: string[];
+
+  danger_level?:
+    | "low"
+    | "medium"
+    | "high";
+
+  interviewCompleted?: boolean;
+
+  timestamp?: number;
+
+  createdAt?: number;
+
+  raw?: any;
 }

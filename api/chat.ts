@@ -10,10 +10,15 @@ export default async function handler(
   res: VercelResponse
 ) {
 
+  // -----------------------------------
+  // METHOD CHECK
+  // -----------------------------------
+
   if (req.method !== 'POST') {
 
     return res.status(405).json({
-      error: 'Метод не поддерживается'
+      error:
+        'Метод не поддерживается'
     });
   }
 
@@ -25,6 +30,10 @@ export default async function handler(
       lastAnalysis
     } = req.body;
 
+    // -----------------------------------
+    // IMPORT ORCHESTRATOR
+    // -----------------------------------
+
     const {
       MedicalOrchestrator
     } = await import(
@@ -34,78 +43,117 @@ export default async function handler(
     const orchestrator =
       new MedicalOrchestrator();
 
+    // -----------------------------------
+    // SAFE MESSAGES
+    // -----------------------------------
+
     const safeMessages =
       Array.isArray(messages)
         ? messages
         : [];
 
     const lastMessage =
-      safeMessages[safeMessages.length - 1];
+      safeMessages[
+      safeMessages.length - 1
+      ];
 
     const history =
-      safeMessages.slice(-6, -1);
+      safeMessages.slice(-8, -1);
 
     if (!lastMessage) {
 
       return res.status(400).json({
-        error: 'Нет сообщения пользователя'
+        error:
+          'Нет сообщения пользователя'
       });
     }
 
-    // -------------------------
+    // -----------------------------------
     // IMAGE EXTRACTION
-    // -------------------------
+    // -----------------------------------
 
     const imageParts: any[] = [];
 
-    if (Array.isArray(lastMessage.content)) {
+    if (
+      Array.isArray(
+        lastMessage.content
+      )
+    ) {
 
-      lastMessage.content.forEach((part: any) => {
+      lastMessage.content.forEach(
+        (part: any) => {
 
-        if (
-          part?.type === 'image_url' &&
-          part?.image_url?.url
-        ) {
+          if (
 
-          const url = part.image_url.url;
+            part?.type === 'image_url'
 
-          const matches =
-            url.match(/^data:(.*?);base64,(.*)$/);
+            &&
 
-          if (!matches) {
-            return;
-          }
+            part?.image_url?.url
 
-          const mimeType = matches[1];
+          ) {
 
-          const base64Data = matches[2];
+            const url =
+              part.image_url.url;
 
-          imageParts.push({
-            inlineData: {
-              data: base64Data,
-              mimeType
+            const matches =
+              url.match(
+                /^data:(.*?);base64,(.*)$/
+              );
+
+            if (!matches) {
+              return;
             }
-          });
+
+            const mimeType =
+              matches[1];
+
+            const base64Data =
+              matches[2];
+
+            imageParts.push({
+
+              inlineData: {
+
+                data:
+                  base64Data,
+
+                mimeType
+              }
+            });
+          }
         }
-      });
+      );
     }
 
-    // -------------------------
+    // -----------------------------------
     // USER INPUT EXTRACTION
-    // -------------------------
+    // -----------------------------------
 
     let userInput = "";
 
-    if (typeof lastMessage.content === 'string') {
+    if (
+      typeof lastMessage.content
+      === 'string'
+    ) {
 
-      userInput = lastMessage.content;
+      userInput =
+        lastMessage.content;
 
-    } else if (Array.isArray(lastMessage.content)) {
+    } else if (
+      Array.isArray(
+        lastMessage.content
+      )
+    ) {
 
       const textPart =
         lastMessage.content.find(
           (p: any) =>
-            p.type === 'text' ||
+
+            p.type === 'text'
+
+            ||
+
             p.type === 'input_text'
         );
 
@@ -113,77 +161,86 @@ export default async function handler(
         textPart?.text || "";
     }
 
-    // -------------------------
+    // -----------------------------------
     // PROCESS REQUEST
-    // -------------------------
+    // -----------------------------------
 
-    const {
-      text,
-      decision,
-      updatedMemory
-    } = await orchestrator.processRequest(
-      userInput,
-      imageParts,
-      history,
+    const result =
+      await orchestrator.processRequest(
 
-      memory || {
-        symptoms: [],
-        medications: [],
-        diagnoses: [],
-        allergies: [],
-        riskFactors: [],
-        uploadedDocuments: [],
-        extractedFacts: [],
+        userInput,
 
-        chronicConditions: [],
-        surgeries: [],
-        familyHistory: []
-      },
+        imageParts,
 
-      lastAnalysis || null
-    );
+        history,
 
-    // -------------------------
-    // TRY PARSE ANALYSIS
-    // -------------------------
+        memory || {
 
-    let parsedAnalysis = null;
+          symptoms: [],
+          medications: [],
+          diagnoses: [],
+          allergies: [],
+          riskFactors: [],
+          uploadedDocuments: [],
+          extractedFacts: [],
 
-    try {
+          chronicConditions: [],
+          surgeries: [],
+          familyHistory: []
+        },
 
-      const cleaned = text
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
+        lastAnalysis || null
+      );
 
-      parsedAnalysis = JSON.parse(cleaned);
-
-    } catch {
-
-      parsedAnalysis = null;
-    }
-
-    // -------------------------
+    // -----------------------------------
     // RESPONSE
-    // -------------------------
+    // -----------------------------------
 
     return res.status(200).json({
-      text,
-      decision,
 
-      updatedMemory,
+      text:
+        result.text || "",
+
+      decision:
+        result.decision || {},
+
+      quickReplies:
+
+        Array.isArray(
+          result.quickReplies
+        )
+
+          ? result.quickReplies
+
+          : [],
+
+      updatedMemory:
+        result.updatedMemory || null,
 
       lastAnalysis:
-        parsedAnalysis || lastAnalysis || null
+        lastAnalysis || null,
+
+      interviewCompleted:
+
+        result.decision
+          ?.interviewCompleted || false
     });
 
   } catch (error: any) {
 
-    console.error('Chat error:', error);
+    console.error(
+      'Chat error:',
+      error
+    );
 
     return res.status(500).json({
-      error: 'Ошибка при обработке запроса.',
-      details: error?.message || 'Unknown error'
+
+      error:
+        'Ошибка при обработке запроса.',
+
+      details:
+        error?.message ||
+        'Unknown error'
     });
   }
 }

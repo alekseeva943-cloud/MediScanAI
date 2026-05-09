@@ -1,3 +1,5 @@
+// src/ai/router/medicalRouter.ts
+
 import { OpenAIProvider } from "../providers/openaiProvider.js";
 
 import {
@@ -27,7 +29,7 @@ export class MedicalRouter {
   }
 
   // -----------------------------------
-  // BUILD COMPACT ROUTER CONTEXT
+  // BUILD CONTEXT
   // -----------------------------------
 
   private buildCompactContext(
@@ -38,25 +40,28 @@ export class MedicalRouter {
 
     return {
 
-      userMessage:
-        userInput.slice(0, 1200),
+      currentMessage:
+        userInput.slice(0, 1500),
 
-      recentSymptoms:
-        memory.symptoms.slice(-5),
+      symptoms:
+        memory.symptoms.slice(-10),
 
       medications:
-        memory.medications.slice(-5),
+        memory.medications.slice(-10),
 
-      previousDiagnoses:
-        memory.diagnoses.slice(-5),
+      diagnoses:
+        memory.diagnoses.slice(-10),
 
       extractedFacts:
-        memory.extractedFacts.slice(-10),
+        memory.extractedFacts.slice(-20),
+
+      uploadedDocuments:
+        memory.uploadedDocuments.slice(-5),
 
       hasPreviousAnalysis:
         !!lastAnalysis,
 
-      hasImage:
+      hasMedicalFiles:
         memory.uploadedDocuments.length > 0
     };
   }
@@ -83,54 +88,42 @@ export class MedicalRouter {
 
       const shortHistory =
         history
-          .slice(-6)
+          .slice(-8)
           .map((m: any) => ({
             role: m.role,
-            content: String(m.content).slice(0, 300)
+            content:
+              String(m.content)
+                .slice(0, 500)
           }));
 
       const prompt = `
-You are an advanced medical AI router.
+You are an advanced AI medical router.
 
-You NEVER diagnose.
+IMPORTANT:
+You are NOT diagnosing diseases.
 
-You ONLY decide:
-- Does the AI need more clarification?
-- Is there enough data for medical analysis?
-- Is this an emergency?
-- What is the best next interview direction?
+You decide:
+- does the AI need clarification?
+- is there enough information?
+- is this emergency?
+- should interview continue?
 
-CRITICAL BEHAVIOR:
+CRITICAL RULES:
 
-The AI must behave like a real medical assistant.
-
-If information is incomplete:
-→ choose CLARIFICATION_MODE
-
-If information is detailed enough:
-→ choose FULL_MEDICAL_ANALYSIS
-
-DO NOT ask many questions at once.
-
-DO NOT generate questionnaires.
-
-The interview must feel natural and adaptive.
-
-GOOD:
-User: "My elbow is swollen"
-AI: clarification
-
-GOOD:
-User: "My elbow is swollen for 5 days after trauma, severe pain, fever"
-AI: analysis
+- Think like a premium medical assistant.
+- Interviews must feel natural.
+- Questions must adapt dynamically.
+- Avoid robotic behavior.
+- Avoid fixed questionnaires.
+- Never ask many questions at once.
 
 EMERGENCY CONDITIONS:
 - chest pain
 - breathing difficulty
 - stroke symptoms
-- suicidal intent
-- severe allergic reaction
 - loss of consciousness
+- severe allergic reaction
+- suicidal intent
 - severe bleeding
 
 AVAILABLE MODES:
@@ -141,13 +134,24 @@ AVAILABLE MODES:
 - ANALYSIS_UPDATE_MODE
 - EMERGENCY_WARNING_MODE
 
+WHEN TO USE CLARIFICATION_MODE:
+- symptoms unclear
+- insufficient data
+- interview should continue
+
+WHEN TO USE FULL_MEDICAL_ANALYSIS:
+- enough medically relevant data exists
+- symptoms sufficiently clarified
+- user uploaded tests/images
+- enough context for preliminary analysis
+
 CURRENT CONTEXT:
 ${JSON.stringify(compact)}
 
 RECENT CHAT:
 ${JSON.stringify(shortHistory)}
 
-RETURN ONLY JSON.
+RETURN ONLY VALID JSON.
 
 FORMAT:
 {
@@ -156,21 +160,19 @@ FORMAT:
   "needsClarification": true,
   "clarificationQuestions": [
     "duration",
-    "pain",
     "severity",
-    "swelling",
-    "mobility"
+    "swelling"
   ],
   "emergencyLevel": "low",
-  "isUpdateToExisting": false
+  "isUpdateToExisting": false,
+  "question": "question here",
+  "quickReplies": [
+    "option 1",
+    "option 2",
+    "Пропустить"
+  ],
+  "interviewCompleted": false
 }
-
-IMPORTANT:
-clarificationQuestions are NOT real questions.
-
-They are ONLY interview topics for the AI interviewer.
-
-Use short topic names only.
 `;
 
       const text =
@@ -205,17 +207,36 @@ Use short topic names only.
           parsed.needsClarification ?? true,
 
         clarificationQuestions:
+
           Array.isArray(
             parsed.clarificationQuestions
           )
+
             ? parsed.clarificationQuestions
+
             : [],
 
         emergencyLevel:
           parsed.emergencyLevel || 'low',
 
         isUpdateToExisting:
-          parsed.isUpdateToExisting || false
+          parsed.isUpdateToExisting || false,
+
+        question:
+          parsed.question || "",
+
+        quickReplies:
+
+          Array.isArray(
+            parsed.quickReplies
+          )
+
+            ? parsed.quickReplies
+
+            : ["Пропустить"],
+
+        interviewCompleted:
+          parsed.interviewCompleted || false
       };
 
     } catch (error) {
@@ -236,14 +257,28 @@ Use short topic names only.
         needsClarification: true,
 
         clarificationQuestions: [
-          "duration",
-          "pain",
-          "severity"
+          "details"
         ],
 
         emergencyLevel: 'low',
 
-        isUpdateToExisting: false
+        isUpdateToExisting: false,
+
+        question:
+          "Расскажите подробнее о симптомах.",
+
+        quickReplies: [
+
+          "Добавить детали",
+
+          "📷 Загрузить фото",
+
+          "🧪 Прикрепить анализы",
+
+          "Пропустить"
+        ],
+
+        interviewCompleted: false
       };
     }
   }

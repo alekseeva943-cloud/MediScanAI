@@ -2,99 +2,119 @@
 
 import { create } from 'zustand';
 
-import { persist } from 'zustand/middleware';
-
-import {
-  ChatState
+import type {
+  Message
 } from '../types';
 
-export const useChatStore = create<ChatState>()(
+interface ChatStore {
 
-  persist(
+  messages: Message[];
 
-    (set) => ({
+  isLoading: boolean;
 
-      // -------------------------
-      // CHAT
-      // -------------------------
+  status: string | null;
 
-      messages: [],
+  error: string | null;
 
-      // -------------------------
-      // MEDICAL MEMORY
-      // -------------------------
+  medicalMemory: any;
 
-      medicalMemory: {
+  lastAnalysis: any;
 
-        symptoms: [],
+  // -----------------------------------
+  // ACTIONS
+  // -----------------------------------
 
-        medications: [],
+  addMessage:
+    (message: Message) => void;
 
-        diagnoses: [],
+  updateMessage:
+    (
+      id: string,
+      updates: Partial<Message>
+    ) => void;
 
-        allergies: [],
+  clearHistory:
+    () => void;
 
-        riskFactors: [],
+  setLoading:
+    (
+      loading: boolean,
+      status?: string | null
+    ) => void;
 
-        uploadedDocuments: [],
+  setError:
+    (
+      error: string | null
+    ) => void;
 
-        extractedFacts: []
-      },
+  setMedicalMemory:
+    (memory: any) => void;
 
-      // -------------------------
-      // ANALYSIS
-      // -------------------------
+  setLastAnalysis:
+    (analysis: any) => void;
+}
 
-      lastAnalysis: null,
+export const useChatStore =
+  create<ChatStore>((set) => ({
 
-      // -------------------------
-      // INTERVIEW FLOW
-      // -------------------------
+    // -----------------------------------
+    // STATE
+    // -----------------------------------
 
-      interviewState: {
+    messages: [],
 
-        active: false,
+    isLoading: false,
 
-        completed: false,
+    status: null,
 
-        currentStep: 0,
+    error: null,
 
-        totalSteps: 0,
+    medicalMemory: {
 
-        currentQuestion: '',
+      symptoms: [],
 
-        collectedAnswers: [],
+      medications: [],
 
-        skippedQuestions: [],
+      diagnoses: [],
 
-        askedQuestions: []
-      },
+      allergies: [],
 
-      // -------------------------
-      // UI
-      // -------------------------
+      riskFactors: [],
 
-      isLoading: false,
+      uploadedDocuments: [],
 
-      status: null,
+      extractedFacts: [],
 
-      error: null,
+      chronicConditions: [],
 
-      // -------------------------
-      // CHAT ACTIONS
-      // -------------------------
+      surgeries: [],
 
-      addMessage: (message) =>
+      familyHistory: []
+    },
+
+    lastAnalysis: null,
+
+    // -----------------------------------
+    // ADD MESSAGE
+    // -----------------------------------
+
+    addMessage:
+      (message) =>
 
         set((state) => ({
 
           messages: [
             ...state.messages,
             message
-          ].slice(-40)
+          ]
         })),
 
-      updateMessage: (id, updates) =>
+    // -----------------------------------
+    // UPDATE MESSAGE
+    // -----------------------------------
+
+    updateMessage:
+      (id, updates) =>
 
         set((state) => ({
 
@@ -102,146 +122,32 @@ export const useChatStore = create<ChatState>()(
             state.messages.map((m) =>
 
               m.id === id
+
                 ? {
                     ...m,
                     ...updates
                   }
+
                 : m
-            ),
+            )
         })),
 
-      // -------------------------
-      // LOADING
-      // -------------------------
+    // -----------------------------------
+    // CLEAR HISTORY
+    // -----------------------------------
 
-      setLoading: (
-        loading,
-        status = null
-      ) =>
-
-        set({
-          isLoading: loading,
-          status
-        }),
-
-      // -------------------------
-      // MEMORY
-      // -------------------------
-
-      setMedicalMemory: (memory) =>
-
-        set((state) => ({
-
-          medicalMemory: {
-
-            ...state.medicalMemory,
-
-            ...memory
-          }
-        })),
-
-      // -------------------------
-      // ANALYSIS
-      // -------------------------
-
-      setLastAnalysis: (analysis) =>
-
-        set({
-          lastAnalysis: analysis
-        }),
-
-      // -------------------------
-      // INTERVIEW FLOW
-      // -------------------------
-
-      setInterviewState: (updates) =>
-
-        set((state) => {
-
-          const current =
-            state.interviewState;
-
-          return {
-
-            interviewState: {
-
-              ...current,
-
-              ...updates,
-
-              askedQuestions: [
-
-                ...new Set([
-
-                  ...(current.askedQuestions || []),
-
-                  ...(updates.askedQuestions || [])
-                ])
-              ],
-
-              skippedQuestions: [
-
-                ...new Set([
-
-                  ...(current.skippedQuestions || []),
-
-                  ...(updates.skippedQuestions || [])
-                ])
-              ],
-
-              collectedAnswers: [
-
-                ...(current.collectedAnswers || []),
-
-                ...(updates.collectedAnswers || [])
-              ]
-            }
-          };
-        }),
-
-      resetInterview: () =>
-
-        set({
-
-          interviewState: {
-
-            active: false,
-
-            completed: false,
-
-            currentStep: 0,
-
-            totalSteps: 0,
-
-            currentQuestion: '',
-
-            collectedAnswers: [],
-
-            skippedQuestions: [],
-
-            askedQuestions: []
-          }
-        }),
-
-      // -------------------------
-      // ERROR
-      // -------------------------
-
-      setError: (error) =>
-
-        set({
-          error
-        }),
-
-      // -------------------------
-      // CLEAR
-      // -------------------------
-
-      clearHistory: () =>
+    clearHistory:
+      () =>
 
         set({
 
           messages: [],
+
+          lastAnalysis: null,
+
+          error: null,
+
+          status: null,
 
           medicalMemory: {
 
@@ -257,40 +163,63 @@ export const useChatStore = create<ChatState>()(
 
             uploadedDocuments: [],
 
-            extractedFacts: []
-          },
+            extractedFacts: [],
 
-          lastAnalysis: null,
+            chronicConditions: [],
 
-          interviewState: {
+            surgeries: [],
 
-            active: false,
-
-            completed: false,
-
-            currentStep: 0,
-
-            totalSteps: 0,
-
-            currentQuestion: '',
-
-            collectedAnswers: [],
-
-            skippedQuestions: [],
-
-            askedQuestions: []
-          },
-
-          isLoading: false,
-
-          status: null,
-
-          error: null
+            familyHistory: []
+          }
         }),
-    }),
 
-    {
-      name: 'medical-ai-chat-history',
-    }
-  )
-);
+    // -----------------------------------
+    // LOADING
+    // -----------------------------------
+
+    setLoading:
+      (
+        loading,
+        status = null
+      ) =>
+
+        set({
+
+          isLoading: loading,
+
+          status
+        }),
+
+    // -----------------------------------
+    // ERROR
+    // -----------------------------------
+
+    setError:
+      (error) =>
+
+        set({
+          error
+        }),
+
+    // -----------------------------------
+    // MEMORY
+    // -----------------------------------
+
+    setMedicalMemory:
+      (medicalMemory) =>
+
+        set({
+          medicalMemory
+        }),
+
+    // -----------------------------------
+    // ANALYSIS
+    // -----------------------------------
+
+    setLastAnalysis:
+      (lastAnalysis) =>
+
+        set({
+          lastAnalysis
+        })
+  }));

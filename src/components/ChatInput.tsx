@@ -12,7 +12,8 @@ import {
   X,
   Loader2,
   StopCircle,
-  Paperclip
+  Paperclip,
+  Sparkles
 } from 'lucide-react';
 
 import {
@@ -30,6 +31,10 @@ import { cn } from '../lib/utils';
 import { useChatStore } from '../store/useChatStore';
 
 import { CameraModal } from './CameraModal';
+
+// -----------------------------------
+// VOICE VISUALIZER
+// -----------------------------------
 
 const VoiceWaveform = () => {
 
@@ -79,9 +84,6 @@ export const ChatInput = ({
   suggestions
 }: ChatInputProps) => {
 
-  const setLoading =
-    useChatStore(state => state.setLoading);
-
   const [text, setText] =
     useState('');
 
@@ -91,7 +93,7 @@ export const ChatInput = ({
   const [isRecording, setIsRecording] =
     useState(false);
 
-  const [isTranscribing, setIsTranscribing] =
+  const [isTranscribing] =
     useState(false);
 
   const [isCameraOpen, setIsCameraOpen] =
@@ -106,9 +108,9 @@ export const ChatInput = ({
   const audioChunksRef =
     useRef<Blob[]>([]);
 
-  // -------------------------
+  // -----------------------------------
   // SUBMIT
-  // -------------------------
+  // -----------------------------------
 
   const handleSubmit = (
     e?: React.FormEvent
@@ -133,9 +135,9 @@ export const ChatInput = ({
     setImage(null);
   };
 
-  // -------------------------
+  // -----------------------------------
   // IMAGE
-  // -------------------------
+  // -----------------------------------
 
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -161,26 +163,33 @@ export const ChatInput = ({
     reader.readAsDataURL(file);
   };
 
-  // -------------------------
-  // VOICE
-  // -------------------------
+  // -----------------------------------
+  // START RECORDING
+  // -----------------------------------
 
   const startRecording = async () => {
 
     try {
 
       const stream =
-        await navigator
-          .mediaDevices
-          .getUserMedia({
-            audio: true
-          });
+        await navigator.mediaDevices.getUserMedia({
+          audio: true
+        });
 
       const mimeType =
-        MediaRecorder.isTypeSupported('audio/webm')
+
+        MediaRecorder.isTypeSupported(
+          'audio/webm'
+        )
+
           ? 'audio/webm'
-          : MediaRecorder.isTypeSupported('audio/ogg')
+
+          : MediaRecorder.isTypeSupported(
+              'audio/ogg'
+            )
+
             ? 'audio/ogg'
+
             : '';
 
       const options =
@@ -263,6 +272,10 @@ export const ChatInput = ({
     }
   };
 
+  // -----------------------------------
+  // STOP RECORDING
+  // -----------------------------------
+
   const stopRecording = () => {
 
     mediaRecorderRef
@@ -272,73 +285,32 @@ export const ChatInput = ({
     setIsRecording(false);
   };
 
-  // -------------------------
-  // QUICK REPLIES
-  // -------------------------
-
-  const interviewState =
-    useChatStore(state => state.interviewState);
-
-  const setInterviewState =
-    useChatStore(state => state.setInterviewState);
+  // -----------------------------------
+  // QUICK REPLY CLICK
+  // -----------------------------------
 
   const handleSuggestionClick = (
     suggestion: string
   ) => {
 
-    // -------------------------
-    // SKIP QUESTION
-    // -------------------------
-
     if (
-      suggestion === 'Пропустить'
+      isLoading
     ) {
-
-      const currentStep =
-        interviewState.currentStep || 1;
-
-      const totalSteps =
-        interviewState.totalSteps || 1;
-
-      // LAST QUESTION
-
-      if (
-        currentStep >= totalSteps
-      ) {
-
-        setInterviewState({
-
-          active: false,
-
-          completed: true
-        });
-
-        return;
-      }
-
-      // NEXT STEP
-
-      setInterviewState({
-
-        currentStep:
-          currentStep + 1
-      });
-
       return;
     }
 
-    // -------------------------
-    // NORMAL ANSWER
-    // -------------------------
-
     onSend(suggestion);
   };
+
+  // -----------------------------------
+  // UI
+  // -----------------------------------
 
   return (
 
     <div className="p-4 bg-white border-t border-slate-100 space-y-4">
 
-      {/* SUGGESTIONS */}
+      {/* QUICK REPLIES */}
 
       <AnimatePresence>
 
@@ -368,18 +340,29 @@ export const ChatInput = ({
 
               {/* HEADER */}
 
-              <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2 px-1">
+
+                <div className="w-7 h-7 rounded-full bg-teal-50 flex items-center justify-center">
+
+                  <Sparkles
+                    size={14}
+                    className="text-teal-600"
+                  />
+
+                </div>
 
                 <div className="flex flex-col">
 
                   <span className="text-[11px] uppercase tracking-widest text-slate-400 font-bold">
-                    Подсказки
+                    AI Подсказки
                   </span>
 
-                  <span className="text-sm text-slate-500 mt-1">
-                    Выберите вариант или продолжите сообщение
+                  <span className="text-sm text-slate-500">
+                    Выберите вариант ответа
                   </span>
+
                 </div>
+
               </div>
 
               {/* BUTTONS */}
@@ -387,29 +370,61 @@ export const ChatInput = ({
               <div className="flex flex-wrap gap-2 pb-1">
 
                 {suggestions
+
                   .filter(Boolean)
-                  .slice(0, 6)
-                  .map((s, i) => (
 
-                    <Button
+                  .slice(0, 12)
 
-                      key={i}
+                  .map((s, i) => {
 
-                      variant="secondary"
+                    const isSkip =
+                      s.includes('Пропустить');
 
-                      className="whitespace-nowrap rounded-full py-1.5 px-4 h-auto text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                    const isMedical =
+                      s.includes('МРТ')
+                      ||
+                      s.includes('анализ')
+                      ||
+                      s.includes('фото');
 
-                      onClick={() =>
-                        handleSuggestionClick(s)
-                      }
-                    >
-                      {s}
-                    </Button>
-                  ))}
+                    return (
+
+                      <Button
+
+                        key={i}
+
+                        variant="secondary"
+
+                        className={cn(
+
+                          "whitespace-nowrap rounded-full py-2 px-4 h-auto text-xs border transition-all",
+
+                          isSkip
+
+                            ? "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600"
+
+                            : isMedical
+
+                              ? "bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-700"
+
+                              : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-sm"
+                        )}
+
+                        onClick={() =>
+                          handleSuggestionClick(s)
+                        }
+                      >
+
+                        {s}
+
+                      </Button>
+                    );
+                  })}
               </div>
 
             </motion.div>
           )}
+
       </AnimatePresence>
 
       {/* CAMERA */}
@@ -439,7 +454,7 @@ export const ChatInput = ({
 
             alt="Preview"
 
-            className="w-20 h-20 object-cover rounded-xl border-2 border-indigo-200"
+            className="w-20 h-20 object-cover rounded-2xl border-2 border-teal-100 shadow-md"
           />
 
           <button
@@ -454,6 +469,7 @@ export const ChatInput = ({
             <X size={12} />
 
           </button>
+
         </div>
       )}
 
@@ -550,9 +566,12 @@ export const ChatInput = ({
             }
 
             placeholder={
+
               isRecording
+
                 ? "Слушаю вас..."
-                : "Опишите симптомы или задайте вопрос..."
+
+                : "Опишите симптомы..."
             }
 
             disabled={
@@ -562,7 +581,9 @@ export const ChatInput = ({
             }
 
             className={cn(
-              "pr-12 rounded-full h-11",
+
+              "pr-12 rounded-full h-11 border-slate-200",
+
               isRecording &&
               "pl-12 border-red-200 bg-red-50/30"
             )}
@@ -588,6 +609,7 @@ export const ChatInput = ({
 
             </div>
           )}
+
         </div>
 
         {/* VOICE */}
@@ -627,8 +649,11 @@ export const ChatInput = ({
         >
 
           {isRecording
+
             ? <StopCircle size={20} />
+
             : (
+
               <Mic
                 size={20}
                 className="text-slate-500"
@@ -656,6 +681,7 @@ export const ChatInput = ({
         </Button>
 
       </form>
+
     </div>
   );
-};
+}

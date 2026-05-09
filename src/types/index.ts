@@ -1,20 +1,30 @@
 // src/types/index.ts
 
-import {
+import type {
+
   MedicalMemory,
+
   AnalysisSnapshot,
+
   RouterDecision,
+
   ResponseMode
+
 } from '../ai/types';
 
-export type DangerLevel =
-  'low' |
-  'medium' |
-  'high';
+// -----------------------------------
+// DANGER LEVEL
+// -----------------------------------
 
-// -------------------------
+export type DangerLevel =
+
+  | 'low'
+  | 'medium'
+  | 'high';
+
+// -----------------------------------
 // INTERVIEW FLOW
-// -------------------------
+// -----------------------------------
 
 export interface InterviewState {
 
@@ -29,49 +39,116 @@ export interface InterviewState {
   currentQuestion: string;
 
   collectedAnswers: {
+
     question: string;
+
     answer: string;
+
   }[];
 
   askedQuestions?: string[];
 
   skippedQuestions?: string[];
+
+  symptomContext?: string;
 }
 
-// -------------------------
+// -----------------------------------
+// MEDICATION
+// -----------------------------------
+
+export interface MedicationItem {
+
+  name: string;
+
+  action?: string;
+
+  contraindications?: string[];
+}
+
+// -----------------------------------
 // AI RESPONSE
-// -------------------------
+// -----------------------------------
 
 export interface AIResponse {
 
-  summary: string;
+  // -----------------------------------
+  // MAIN
+  // -----------------------------------
 
-  possible_risks: string[];
+  summary?: string;
 
-  recommendations: string[];
+  message?: string;
 
-  danger_level: DangerLevel;
+  // -----------------------------------
+  // ANALYSIS
+  // -----------------------------------
 
-  suggested_actions: string[];
+  probableDiagnoses?: string[];
 
-  quick_replies: string[];
+  reasoning?: string[];
 
-  medical_warning: string;
+  risks?: string[];
+
+  recommendations?: string[];
+
+  medications?: MedicationItem[];
+
+  suggested_actions?: string[];
+
+  // -----------------------------------
+  // LEGACY SUPPORT
+  // -----------------------------------
+
+  possible_risks?: string[];
+
+  medical_warning?: string;
+
+  // -----------------------------------
+  // UI
+  // -----------------------------------
+
+  quick_replies?: string[];
+
+  quickReplies?: string[];
+
+  // -----------------------------------
+  // STATUS
+  // -----------------------------------
+
+  interviewCompleted?: boolean;
+
+  danger_level?: DangerLevel;
 
   render_mode?: ResponseMode;
 
   router_decision?: RouterDecision;
 }
 
-// -------------------------
+// -----------------------------------
+// ATTACHMENT
+// -----------------------------------
+
+export interface Attachment {
+
+  type:
+    | 'image'
+    | 'voice';
+
+  url: string;
+}
+
+// -----------------------------------
 // MESSAGE
-// -------------------------
+// -----------------------------------
 
 export interface Message {
 
   id: string;
 
-  role: 'user' | 'assistant';
+  role:
+    | 'user'
+    | 'assistant';
 
   content: string;
 
@@ -79,17 +156,18 @@ export interface Message {
 
   ai_data?: AIResponse;
 
-  attachments?: {
-    type: 'image' | 'voice';
-    url: string;
-  }[];
+  attachments?: Attachment[];
 }
 
-// -------------------------
+// -----------------------------------
 // STORE
-// -------------------------
+// -----------------------------------
 
 export interface ChatState {
+
+  // -----------------------------------
+  // STATE
+  // -----------------------------------
 
   messages: Message[];
 
@@ -107,9 +185,9 @@ export interface ChatState {
 
   error: string | null;
 
-  // -------------------------
+  // -----------------------------------
   // CHAT
-  // -------------------------
+  // -----------------------------------
 
   addMessage: (
     message: Message
@@ -117,55 +195,65 @@ export interface ChatState {
 
   updateMessage: (
     id: string,
+
     updates: Partial<Message>
   ) => void;
 
-  // -------------------------
+  // -----------------------------------
   // LOADING
-  // -------------------------
+  // -----------------------------------
 
   setLoading: (
+
     loading: boolean,
+
     status?: string | null
+
   ) => void;
 
-  // -------------------------
+  // -----------------------------------
   // MEMORY
-  // -------------------------
+  // -----------------------------------
 
   setMedicalMemory: (
     memory: Partial<MedicalMemory>
   ) => void;
 
-  // -------------------------
+  // -----------------------------------
   // ANALYSIS
-  // -------------------------
+  // -----------------------------------
 
   setLastAnalysis: (
-    analysis: AnalysisSnapshot | null
+
+    analysis:
+      AnalysisSnapshot | null
+
   ) => void;
 
-  // -------------------------
-  // INTERVIEW FLOW
-  // -------------------------
+  // -----------------------------------
+  // INTERVIEW
+  // -----------------------------------
 
   setInterviewState: (
-    updates: Partial<InterviewState>
+
+    updates:
+      Partial<InterviewState>
+
   ) => void;
 
   resetInterview: () => void;
 
-  // -------------------------
+  // -----------------------------------
   // ERROR
-  // -------------------------
+  // -----------------------------------
 
   setError: (
     error: string | null
   ) => void;
 
-  // -------------------------
+  // -----------------------------------
   // CLEAR
-  // -------------------------
+  // -----------------------------------
 
   clearHistory: () => void;
 }

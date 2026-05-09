@@ -1,8 +1,12 @@
-import { Message, AIResponse } from '../types';
+// src/services/apiService.ts
 
-import { MEDICAL_SYSTEM_PROMPT } from './medicalPrompt';
+import {
+  Message,
+  AIResponse
+} from '../types';
 
 export interface ChatApiResponse {
+
   text: string;
 
   decision: any;
@@ -12,14 +16,24 @@ export interface ChatApiResponse {
   lastAnalysis?: any;
 
   quickReplies?: string[];
+
+  interviewCompleted?: boolean;
 }
 
 export const apiService = {
 
+  // -----------------------------------
+  // CHAT
+  // -----------------------------------
+
   async chat(
+
     messages: {
+
       role: string;
+
       content: any;
+
     }[],
 
     memory?: any,
@@ -28,182 +42,123 @@ export const apiService = {
 
   ): Promise<ChatApiResponse> {
 
-    const response = await fetch('/api/chat', {
+    const response =
+      await fetch('/api/chat', {
 
-      method: 'POST',
+        method: 'POST',
 
-      headers: {
-        'Content-Type': 'application/json'
-      },
+        headers: {
+          'Content-Type':
+            'application/json'
+        },
 
-      body: JSON.stringify({
-        messages,
-        memory,
-        lastAnalysis
-      }),
-    });
+        body: JSON.stringify({
+
+          messages,
+
+          memory,
+
+          lastAnalysis
+        })
+      });
+
+    // -----------------------------------
+    // ERROR
+    // -----------------------------------
 
     if (!response.ok) {
 
-      const error = await response.json();
+      const error =
+        await response.json();
 
       throw new Error(
-        error.error || 'Ошибка API'
+
+        error.error ||
+
+        'Ошибка API'
       );
     }
 
-    const data = await response.json();
+    // -----------------------------------
+    // DATA
+    // -----------------------------------
 
-    let quickReplies: string[] = [];
-
-    if (
-      data?.decision?.mode === 'CLARIFICATION_MODE'
-    ) {
-
-      const text =
-        String(data.text || '').toLowerCase();
-
-      if (
-        text.includes('когда')
-      ) {
-
-        quickReplies = [
-          'Сегодня',
-          'Вчера',
-          'Несколько дней',
-          'Давно',
-          'Пропустить'
-        ];
-      }
-
-      else if (
-
-        text.includes('боль')
-
-        ||
-
-        text.includes('болит')
-
-      ) {
-
-        quickReplies = [
-          'Слабая',
-          'Средняя',
-          'Сильная',
-          'Только при движении',
-          'Пропустить'
-        ];
-      }
-
-      else if (
-        text.includes('температур')
-      ) {
-
-        quickReplies = [
-          'Нет',
-          '37-38',
-          '38+',
-          'Не измерял',
-          'Пропустить'
-        ];
-      }
-
-      else if (
-
-        text.includes('отек')
-
-        ||
-
-        text.includes('опух')
-
-      ) {
-
-        quickReplies = [
-          'Да',
-          'Нет',
-          'Немного',
-          'Сильный',
-          'Пропустить'
-        ];
-      }
-
-      else if (
-
-        text.includes('травм')
-
-        ||
-
-        text.includes('удар')
-
-        ||
-
-        text.includes('падени')
-
-      ) {
-
-        quickReplies = [
-          'Да',
-          'Нет',
-          'После спорта',
-          'После падения',
-          'Пропустить'
-        ];
-      }
-
-      else {
-
-        quickReplies = [
-          'Да',
-          'Нет',
-          'Не знаю',
-          'Пропустить'
-        ];
-      }
-    }
+    const data =
+      await response.json();
 
     return {
 
-      text: data.text,
+      text:
+        data.text || "",
 
-      decision: data.decision,
+      decision:
+        data.decision || {},
 
-      updatedMemory: data.updatedMemory,
+      updatedMemory:
+        data.updatedMemory || null,
 
-      lastAnalysis: data.lastAnalysis,
+      lastAnalysis:
+        data.lastAnalysis || null,
 
-      quickReplies
+      quickReplies:
+
+        Array.isArray(
+          data.quickReplies
+        )
+
+          ? data.quickReplies
+
+          : [],
+
+      interviewCompleted:
+
+        data.interviewCompleted || false
     };
   },
+
+  // -----------------------------------
+  // VOICE
+  // -----------------------------------
 
   async transcribeVoice(
     audioBlob: Blob
   ): Promise<string> {
 
-    const formData = new FormData();
+    const formData =
+      new FormData();
 
     formData.append(
+
       'file',
+
       audioBlob,
+
       'voice.webm'
     );
 
-    const response = await fetch('/api/voice', {
+    const response =
+      await fetch('/api/voice', {
 
-      method: 'POST',
+        method: 'POST',
 
-      body: formData,
-    });
+        body: formData
+      });
 
     if (!response.ok) {
 
-      const error = await response.json();
+      const error =
+        await response.json();
 
       throw new Error(
-        error.error || 'Ошибка транскрипции'
+
+        error.error ||
+
+        'Ошибка транскрипции'
       );
     }
 
-    const data = await response.json();
+    const data =
+      await response.json();
 
     return data.text;
   }
