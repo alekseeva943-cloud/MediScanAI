@@ -57,22 +57,12 @@ export class OpenAIProvider {
     const input: any[] = [
       {
         role: "system",
-        content: [
-          {
-            type: "input_text",
-            text: this.normalizeText(systemInstruction)
-          }
-        ]
+        content: this.normalizeText(systemInstruction)
       },
 
       ...history.map((m) => ({
         role: m.role === "user" ? "user" : "assistant",
-        content: [
-          {
-            type: "input_text",
-            text: this.normalizeText(m.content)
-          }
-        ]
+        content: this.normalizeText(m.content)
       })),
 
       {
@@ -106,18 +96,7 @@ export class OpenAIProvider {
     const response = await this.client.responses.create({
       model: "gpt-4o-mini",
 
-      input: [
-        {
-          role: "user",
-
-          content: [
-            {
-              type: "input_text",
-              text: this.normalizeText(prompt)
-            }
-          ]
-        }
-      ]
+      input: prompt
     });
 
     return response.output_text || "";
