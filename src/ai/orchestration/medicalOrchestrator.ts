@@ -23,18 +23,76 @@ import type {
 } from "../types/index.js";
 
 export class MedicalOrchestrator {
+
   private provider: OpenAIProvider;
 
   private router: MedicalRouter;
 
   constructor(apiKey?: string) {
 
-    const key = apiKey || process.env.OPENAI_API_KEY || '';
+    const key =
+      apiKey ||
+      process.env.OPENAI_API_KEY ||
+      '';
 
-    this.provider = new OpenAIProvider(key);
+    this.provider =
+      new OpenAIProvider(key);
 
-    this.router = new MedicalRouter(key);
+    this.router =
+      new MedicalRouter(key);
   }
+
+  // -----------------------------------
+  // COMPACT MEMORY
+  // -----------------------------------
+
+  private buildCompactMemory(
+    memory: MedicalMemory
+  ) {
+
+    return {
+
+      symptoms:
+        memory.symptoms.slice(-10),
+
+      medications:
+        memory.medications.slice(-10),
+
+      diagnoses:
+        memory.diagnoses.slice(-10),
+
+      allergies:
+        memory.allergies.slice(-10),
+
+      riskFactors:
+        memory.riskFactors.slice(-10),
+
+      extractedFacts:
+        memory.extractedFacts.slice(-15),
+
+      chronicConditions:
+        (memory.chronicConditions || [])
+          .slice(-10),
+
+      surgeries:
+        (memory.surgeries || [])
+          .slice(-10),
+
+      familyHistory:
+        (memory.familyHistory || [])
+          .slice(-10),
+
+      age:
+        memory.age,
+
+      sex:
+        memory.sex
+    };
+  }
+
+  // -----------------------------------
+  // MEMORY EXTRACTION
+  // -----------------------------------
 
   private async extractMemory(
     userInput: string,
@@ -43,18 +101,23 @@ export class MedicalOrchestrator {
 
     try {
 
+      const compactMemory =
+        this.buildCompactMemory(memory);
+
       const prompt = `
 ${MEMORY_EXTRACTION_PROMPT}
 
 CURRENT MEMORY:
-${JSON.stringify(memory)}
+${JSON.stringify(compactMemory)}
 
 NEW USER MESSAGE:
-${userInput}
+${userInput.slice(0, 4000)}
 `;
 
       const text =
-        await this.provider.generateRouterDecision(prompt);
+        await this.provider.generateRouterDecision(
+          prompt
+        );
 
       const cleaned = text
         .replace(/```json/g, "")
@@ -65,11 +128,18 @@ ${userInput}
 
     } catch (error) {
 
-      console.error("Memory extraction error:", error);
+      console.error(
+        "Memory extraction error:",
+        error
+      );
 
       return {};
     }
   }
+
+  // -----------------------------------
+  // MAIN PROCESS
+  // -----------------------------------
 
   async processRequest(
     userInput: string,
@@ -79,24 +149,49 @@ ${userInput}
     lastAnalysis: AnalysisSnapshot | null
   ) {
 
-    // 1. Route the request
+    // -------------------------
+    // LIMIT INPUT SIZE
+    // -------------------------
+
+    const safeUserInput =
+      userInput.slice(0, 6000);
+
+    const safeHistory =
+      history.slice(-5);
+
+    // -------------------------
+    // ROUTER
+    // -------------------------
 
     const decision: RouterDecision =
       await this.router.decide(
-        userInput,
-        history,
+        safeUserInput,
+        safeHistory,
         memory,
         lastAnalysis
       );
 
-    console.log("Orchestrator decision:", decision);
+    console.log(
+      "Orchestrator decision:",
+      decision
+    );
 
-    // 2. Extract updated memory
+    // -------------------------
+    // MEMORY EXTRACTION
+    // -------------------------
 
     const extractedMemory =
-      await this.extractMemory(userInput, memory);
+      await this.extractMemory(
+        safeUserInput,
+        memory
+      );
+
+    // -------------------------
+    // UPDATE MEMORY
+    // -------------------------
 
     const updatedMemory: MedicalMemory = {
+
       ...memory,
 
       ...extractedMemory,
@@ -106,100 +201,126 @@ ${userInput}
           ...memory.symptoms,
           ...(extractedMemory.symptoms || [])
         ])
-      ],
+      ].slice(-20),
 
       medications: [
         ...new Set([
           ...memory.medications,
           ...(extractedMemory.medications || [])
         ])
-      ],
+      ].slice(-20),
 
       diagnoses: [
         ...new Set([
           ...memory.diagnoses,
           ...(extractedMemory.diagnoses || [])
         ])
-      ],
+      ].slice(-20),
 
       allergies: [
         ...new Set([
           ...memory.allergies,
           ...(extractedMemory.allergies || [])
         ])
-      ],
+      ].slice(-20),
 
       riskFactors: [
         ...new Set([
           ...memory.riskFactors,
           ...(extractedMemory.riskFactors || [])
         ])
-      ],
+      ].slice(-20),
 
       extractedFacts: [
         ...new Set([
           ...memory.extractedFacts,
           ...(extractedMemory.extractedFacts || [])
         ])
-      ],
+      ].slice(-30),
 
       chronicConditions: [
         ...new Set([
           ...(memory.chronicConditions || []),
           ...(extractedMemory.chronicConditions || [])
         ])
-      ],
+      ].slice(-20),
 
       surgeries: [
         ...new Set([
           ...(memory.surgeries || []),
           ...(extractedMemory.surgeries || [])
         ])
-      ],
+      ].slice(-20),
 
       familyHistory: [
         ...new Set([
           ...(memory.familyHistory || []),
           ...(extractedMemory.familyHistory || [])
         ])
-      ]
+      ].slice(-20)
     };
 
-    // 3. Build system prompt
+    // -------------------------
+    // SYSTEM PROMPT
+    // -------------------------
 
-    let systemInstruction = SYSTEM_PROMPT;
+    let systemInstruction =
+      SYSTEM_PROMPT;
 
     let modelName:
-      "gpt-4o-mini" | "gpt-4.1-mini" = "gpt-4o-mini";
+      "gpt-4o-mini" |
+      "gpt-4.1-mini" =
+        "gpt-4o-mini";
 
     switch (decision.mode) {
 
       case ResponseMode.FULL_MEDICAL_ANALYSIS:
 
-        systemInstruction += "\n" + ANALYSIS_PROMPT;
+        systemInstruction +=
+          "\n" + ANALYSIS_PROMPT;
 
-        modelName = "gpt-4.1-mini";
+        modelName =
+          "gpt-4.1-mini";
 
         break;
 
       case ResponseMode.ANALYSIS_UPDATE_MODE:
 
-        systemInstruction += "\n" + UPDATE_ANALYSIS_PROMPT;
+        systemInstruction +=
+          "\n" + UPDATE_ANALYSIS_PROMPT;
 
-        systemInstruction += `
-PREVIOUS ANALYSIS:
-${JSON.stringify(lastAnalysis)}
+        if (lastAnalysis) {
+
+          systemInstruction += `
+
+PREVIOUS ANALYSIS SUMMARY:
+${lastAnalysis.summary.slice(0, 1200)}
+
+PREVIOUS RISKS:
+${lastAnalysis.risks
+  .slice(0, 10)
+  .join(", ")}
+
+PREVIOUS DIAGNOSES:
+${lastAnalysis.probableDiagnoses
+  .slice(0, 10)
+  .join(", ")}
 `;
+        }
 
         break;
 
       case ResponseMode.CLARIFICATION_MODE:
 
         systemInstruction += `
+
 You are in clarification mode.
 
 Ask ONLY these questions:
-${decision.clarificationQuestions.join("\n")}
+
+${decision.clarificationQuestions
+  .slice(0, 5)
+  .join("\n")}
 `;
 
         break;
@@ -207,6 +328,7 @@ ${decision.clarificationQuestions.join("\n")}
       case ResponseMode.EMERGENCY_WARNING_MODE:
 
         systemInstruction += `
+
 CRITICAL MEDICAL SITUATION.
 
 Advise immediate emergency medical attention.
@@ -215,23 +337,38 @@ Advise immediate emergency medical attention.
         break;
     }
 
-    // 4. Inject memory into system prompt
+    // -------------------------
+    // MEMORY INJECTION
+    // -------------------------
+
+    const compactMemory =
+      this.buildCompactMemory(
+        updatedMemory
+      );
 
     systemInstruction += `
 
 CURRENT MEDICAL MEMORY:
-${JSON.stringify(updatedMemory)}
+${JSON.stringify(compactMemory)}
 `;
 
-    // 5. Generate response
+    // -------------------------
+    // GENERATE RESPONSE
+    // -------------------------
 
-    const text = await this.provider.generateText({
-      model: modelName,
-      systemInstruction,
-      history,
-      userInput,
-      imageParts
-    });
+    const text =
+      await this.provider.generateText({
+
+        model: modelName,
+
+        systemInstruction,
+
+        history: safeHistory,
+
+        userInput: safeUserInput,
+
+        imageParts
+      });
 
     return {
       text,

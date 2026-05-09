@@ -16,13 +16,49 @@ import type {
 } from "../types/index.js";
 
 export class MedicalRouter {
+
   private provider: OpenAIProvider;
 
   constructor(apiKey?: string) {
-    const key = apiKey || process.env.OPENAI_API_KEY || '';
 
-    this.provider = new OpenAIProvider(key);
+    const key =
+      apiKey ||
+      process.env.OPENAI_API_KEY ||
+      '';
+
+    this.provider =
+      new OpenAIProvider(key);
   }
+
+  // -----------------------------------
+  // BUILD COMPACT ROUTER CONTEXT
+  // -----------------------------------
+
+  private buildCompactContext(
+    userInput: string,
+    memory: MedicalMemory,
+    lastAnalysis: AnalysisSnapshot | null
+  ) {
+
+    return {
+
+      userMessage:
+        userInput.slice(0, 1500),
+
+      recentSymptoms:
+        memory.symptoms.slice(-5),
+
+      medications:
+        memory.medications.slice(-5),
+
+      hasPreviousAnalysis:
+        !!lastAnalysis
+    };
+  }
+
+  // -----------------------------------
+  // ROUTER
+  // -----------------------------------
 
   async decide(
     userInput: string,
@@ -31,153 +67,95 @@ export class MedicalRouter {
     lastAnalysis: AnalysisSnapshot | null
   ): Promise<RouterDecision> {
 
-    const recentHistory = history
-      .slice(-5)
-      .map((m) => {
-        const content =
-          typeof m.content === "string"
-            ? m.content
-            : JSON.stringify(m.content);
+    try {
 
-        return `${m.role}: ${content}`;
-      })
-      .join("\n");
+      const compact =
+        this.buildCompactContext(
+          userInput,
+          memory,
+          lastAnalysis
+        );
 
-    const previousAnalysisSummary = lastAnalysis
-      ? `
-PREVIOUS ANALYSIS SUMMARY:
-${lastAnalysis.summary}
+      const prompt = `
+You are a lightweight medical AI router.
 
-PREVIOUS RISKS:
-${lastAnalysis.risks.join(", ")}
+Your ONLY task is choosing response mode.
 
-PREVIOUS DIAGNOSES:
-${lastAnalysis.probableDiagnoses.join(", ")}
-`
-      : "NO PREVIOUS ANALYSIS";
+DO NOT provide medical analysis.
 
-    const prompt = `
-You are a deterministic Medical AI Router.
+AVAILABLE MODES:
 
-Your task:
-Analyze the user request and return ONLY valid JSON.
+1. CASUAL_CONVERSATION
+- greetings
+- simple conversation
+- casual questions
 
-DO NOT explain anything.
-DO NOT use markdown.
-DO NOT wrap JSON in backticks.
-RETURN JSON ONLY.
+2. CLARIFICATION_MODE
+- not enough information
+- missing symptoms/details
 
-====================
-USER INPUT
-====================
+3. FULL_MEDICAL_ANALYSIS
+- multiple symptoms
+- medical reports
+- images
+- complex requests
+- analysis requests
 
-${userInput}
+4. ANALYSIS_UPDATE_MODE
+- user updates previous analysis
+- user adds new symptoms to existing case
 
-====================
-RECENT HISTORY
-====================
-
-${recentHistory}
-
-====================
-MEDICAL MEMORY
-====================
-
-${JSON.stringify(memory)}
-
-====================
-PREVIOUS ANALYSIS
-====================
-
-${previousAnalysisSummary}
-
-====================
-AVAILABLE INTENTS
-====================
-
-- CASUAL_CHAT
-- SYMPTOM_ANALYSIS
-- MEDICATION_CHECK
-- DOCUMENT_ANALYSIS
-- EMERGENCY_RISK
-- FOLLOW_UP
-
-====================
-AVAILABLE MODES
-====================
-
-- CASUAL_CONVERSATION
-- CLARIFICATION_MODE
-- PRELIMINARY_ANALYSIS
-- FULL_MEDICAL_ANALYSIS
-- ANALYSIS_UPDATE_MODE
-- EMERGENCY_WARNING_MODE
-
-====================
-ROUTING RULES
-====================
-
-1. EMERGENCY_WARNING_MODE:
-Use ONLY if symptoms may indicate immediate danger:
+5. EMERGENCY_WARNING_MODE
 - chest pain
+- breathing difficulty
 - stroke symptoms
 - severe bleeding
-- loss of consciousness
 - suicidal intent
-- respiratory distress
+- loss of consciousness
+- severe allergic reaction
 
-2. ANALYSIS_UPDATE_MODE:
-Use ONLY if:
-- previous analysis exists
-AND
-- user adds new medical information
-AND
-- user refers to previous findings
+IMPORTANT:
+Be strict.
+Do NOT over-trigger FULL_MEDICAL_ANALYSIS.
 
-3. CLARIFICATION_MODE:
-Use if important information is missing.
+INPUT:
+${JSON.stringify(compact)}
 
-4. FULL_MEDICAL_ANALYSIS:
-Use for:
-- complex symptom analysis
-- medication interaction analysis
-- document interpretation
-- multi-factor medical questions
+Return ONLY valid JSON.
 
-5. PRELIMINARY_ANALYSIS:
-Use for short/simple medical questions.
-
-6. CASUAL_CONVERSATION:
-Use ONLY for greetings or non-medical chat.
-
-====================
-OUTPUT FORMAT
-====================
-
+FORMAT:
 {
-  "intent": "ONE OF AVAILABLE INTENTS",
-  "mode": "ONE OF AVAILABLE MODES",
-  "needsClarification": true,
-  "clarificationQuestions": ["question 1"],
+  "intent": "CASUAL_CHAT",
+  "mode": "CASUAL_CONVERSATION",
+  "needsClarification": false,
+  "clarificationQuestions": [],
   "emergencyLevel": "low",
   "isUpdateToExisting": false
 }
 `;
 
-    try {
-      const text = await this.provider.generateRouterDecision(prompt);
+      const text =
+        await this.provider.generateRouterDecision(
+          prompt
+        );
 
       const cleaned = text
         .replace(/```json/g, "")
         .replace(/```/g, "")
         .trim();
 
-      const parsed = JSON.parse(cleaned);
+      const parsed =
+        JSON.parse(cleaned);
 
       return {
-        intent: parsed.intent || UserIntent.CASUAL_CHAT,
 
-        mode: parsed.mode || ResponseMode.CASUAL_CONVERSATION,
+        intent:
+          parsed.intent ||
+          UserIntent.CASUAL_CHAT,
+
+        mode:
+          parsed.mode ||
+          ResponseMode.CASUAL_CONVERSATION,
 
         needsClarification:
           parsed.needsClarification || false,
@@ -186,7 +164,7 @@ OUTPUT FORMAT
           parsed.clarificationQuestions || [],
 
         emergencyLevel:
-          parsed.emergencyLevel || "low",
+          parsed.emergencyLevel || 'low',
 
         isUpdateToExisting:
           parsed.isUpdateToExisting || false
@@ -194,12 +172,18 @@ OUTPUT FORMAT
 
     } catch (error) {
 
-      console.error("Router error:", error);
+      console.error(
+        "Router error:",
+        error
+      );
 
       return {
-        intent: UserIntent.CASUAL_CHAT,
 
-        mode: ResponseMode.CASUAL_CONVERSATION,
+        intent:
+          UserIntent.CASUAL_CHAT,
+
+        mode:
+          ResponseMode.CASUAL_CONVERSATION,
 
         needsClarification: false,
 
