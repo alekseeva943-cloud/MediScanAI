@@ -30,20 +30,30 @@ import {
 export default function App() {
 
   const {
+
     messages,
+
     isLoading,
+
     error,
 
     addMessage,
+
     updateMessage,
 
     setLoading,
+
     setError,
 
     clearHistory,
 
     setMedicalMemory,
-    setLastAnalysis
+
+    setLastAnalysis,
+
+    setInterviewState,
+
+    resetInterview
 
   } = useChatStore();
 
@@ -60,10 +70,18 @@ export default function App() {
 
   }, [messages]);
 
+  // -------------------------
+  // SEND MESSAGE
+  // -------------------------
+
   const handleSendMessage = useCallback(async (
+
     text: string,
+
     image?: string,
+
     audioBlob?: Blob
+
   ) => {
 
     if (
@@ -84,23 +102,30 @@ export default function App() {
 
       content:
         text ||
-        (audioBlob
-          ? 'Голосовое сообщение...'
-          : ''),
+        (
+          audioBlob
+            ? 'Голосовое сообщение...'
+            : ''
+        ),
 
       timestamp: Date.now(),
 
       attachments:
+
         image
+
           ? [{
               type: 'image',
               url: image
             }]
+
           : audioBlob
+
             ? [{
                 type: 'voice',
                 url: 'voice.webm'
               }]
+
             : undefined,
     };
 
@@ -113,7 +138,7 @@ export default function App() {
       let finalContent = text;
 
       // -------------------------
-      // VOICE TRANSCRIPTION
+      // VOICE
       // -------------------------
 
       if (audioBlob) {
@@ -133,7 +158,9 @@ export default function App() {
 
             updateMessage(
               messageId,
-              { content: finalContent }
+              {
+                content: finalContent
+              }
             );
 
           } else {
@@ -167,16 +194,22 @@ export default function App() {
       // -------------------------
 
       setLoading(
+
         true,
+
         image
           ? 'Анализ изображения'
           : 'Подготовка ответа'
       );
 
       const currentMessages =
-        useChatStore.getState().messages;
+        useChatStore
+          .getState()
+          .messages;
 
-      if (currentMessages.length === 0) {
+      if (
+        currentMessages.length === 0
+      ) {
         return;
       }
 
@@ -184,48 +217,57 @@ export default function App() {
       // BUILD HISTORY
       // -------------------------
 
-      const history = currentMessages.map(m => {
+      const history =
+        currentMessages.map(m => {
 
-        const contentText =
-          m.id === messageId
-            ? finalContent
-            : (
-                m.content ||
-                m.ai_data?.summary ||
-                ''
-              );
+          const contentText =
 
-        const content: any[] = [
-          {
-            type: 'text',
-            text: contentText
-          }
-        ];
+            m.id === messageId
 
-        if (m.attachments) {
+              ? finalContent
 
-          m.attachments.forEach(att => {
+              : (
+                  m.content ||
+                  m.ai_data?.summary ||
+                  ''
+                );
 
-            if (att.type === 'image') {
+          const content: any[] = [
 
-              content.push({
-                type: 'image_url',
-                image_url: {
-                  url: att.url
-                }
-              });
+            {
+              type: 'text',
+              text: contentText
             }
-          });
-        }
+          ];
 
-        return {
-          role: m.role,
-          content
-        };
-      });
+          if (m.attachments) {
+
+            m.attachments.forEach(att => {
+
+              if (att.type === 'image') {
+
+                content.push({
+
+                  type: 'image_url',
+
+                  image_url: {
+                    url: att.url
+                  }
+                });
+              }
+            });
+          }
+
+          return {
+
+            role: m.role,
+
+            content
+          };
+        });
 
       // -------------------------
-      // ANALYSIS STATUS
+      // STATUS
       // -------------------------
 
       if (image) {
@@ -253,7 +295,7 @@ export default function App() {
       }
 
       // -------------------------
-      // MEMORY
+      // STORE
       // -------------------------
 
       const medicalMemory =
@@ -267,23 +309,30 @@ export default function App() {
           .lastAnalysis;
 
       // -------------------------
-      // API REQUEST
+      // API
       // -------------------------
 
       const {
+
         text: aiText,
+
         decision,
+
         updatedMemory,
+
         lastAnalysis: updatedAnalysis
 
       } = await apiService.chat(
+
         history,
+
         medicalMemory,
+
         lastAnalysis
       );
 
       // -------------------------
-      // SAVE MEMORY
+      // MEMORY
       // -------------------------
 
       if (updatedMemory) {
@@ -294,7 +343,7 @@ export default function App() {
       }
 
       // -------------------------
-      // SAVE ANALYSIS
+      // ANALYSIS
       // -------------------------
 
       if (updatedAnalysis) {
@@ -303,6 +352,42 @@ export default function App() {
           updatedAnalysis
         );
       }
+
+      // -------------------------
+      // INTERVIEW FLOW
+      // -------------------------
+
+      if (
+        decision.mode ===
+        'CLARIFICATION_MODE'
+      ) {
+
+        setInterviewState({
+
+          active: true,
+
+          currentStep:
+            decision.clarificationQuestions?.length
+              ? 1
+              : 0,
+
+          totalSteps:
+            decision.clarificationQuestions?.length || 0,
+
+          currentQuestion:
+            decision.clarificationQuestions?.[0] || '',
+
+          collectedAnswers: []
+        });
+
+      } else {
+
+        resetInterview();
+      }
+
+      // -------------------------
+      // SAFETY
+      // -------------------------
 
       if (
         useChatStore
@@ -318,7 +403,7 @@ export default function App() {
       );
 
       // -------------------------
-      // BUILD AI RESPONSE
+      // BUILD AI DATA
       // -------------------------
 
       let aiData: AIResponse;
@@ -338,6 +423,7 @@ export default function App() {
         try {
 
           const parsed = JSON.parse(
+
             aiText.replace(
               /```json|```/g,
               ""
@@ -364,8 +450,7 @@ export default function App() {
             quick_replies:
               parsed.quick_replies || [],
 
-            medical_warning:
-              "Это предварительный анализ ИИ. Обратитесь к врачу.",
+            medical_warning: "",
 
             render_mode:
               decision.mode,
@@ -390,8 +475,7 @@ export default function App() {
 
             quick_replies: [],
 
-            medical_warning:
-              "Ошибка разбора анализа.",
+            medical_warning: "",
 
             render_mode:
               decision.mode,
@@ -416,12 +500,10 @@ export default function App() {
 
           suggested_actions: [],
 
-          quick_replies: [],
+          quick_replies:
+            decision.clarificationQuestions || [],
 
-          medical_warning:
-            decision.emergencyLevel === 'high'
-              ? 'НЕМЕДЛЕННО ОБРАТИТЕСЬ К ВРАЧУ!'
-              : 'Это ИИ ассистент.',
+          medical_warning: "",
 
           render_mode:
             decision.mode,
@@ -448,13 +530,18 @@ export default function App() {
         ai_data: aiData,
       };
 
-      addMessage(assistantMessage);
+      addMessage(
+        assistantMessage
+      );
 
     } catch (err: any) {
 
       const errorMessage =
+
         typeof err.message === 'string'
+
           ? err.message
+
           : 'Произошла неизвестная ошибка';
 
       setError(errorMessage);
@@ -471,13 +558,20 @@ export default function App() {
     messages,
 
     addMessage,
+
     updateMessage,
 
     setLoading,
+
     setError,
 
     setMedicalMemory,
-    setLastAnalysis
+
+    setLastAnalysis,
+
+    setInterviewState,
+
+    resetInterview
   ]);
 
   return (
@@ -523,7 +617,11 @@ export default function App() {
             </div>
 
             <button
-              onClick={() => setError(null)}
+
+              onClick={() =>
+                setError(null)
+              }
+
               className="text-red-500 hover:text-red-700"
             >
 
@@ -570,6 +668,7 @@ export default function App() {
         <div className="flex gap-2">
 
           <Button
+
             variant="ghost"
 
             className="flex items-center gap-2 px-3 text-teal-50 hover:bg-white/10 hover:text-white transition-all rounded-xl"
@@ -606,7 +705,9 @@ export default function App() {
       <main className="flex-1 flex flex-col relative min-h-0">
 
         <MessageList
+
           messages={messages}
+
           isLoading={isLoading}
         />
 
@@ -617,6 +718,7 @@ export default function App() {
       <footer className="relative z-20">
 
         <ChatInput
+
           onSend={handleSendMessage}
 
           isLoading={isLoading}

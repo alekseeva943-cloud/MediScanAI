@@ -12,6 +12,27 @@ export type DangerLevel =
   'medium' |
   'high';
 
+// -------------------------
+// INTERVIEW FLOW
+// -------------------------
+
+export interface InterviewState {
+
+  active: boolean;
+
+  currentStep: number;
+
+  totalSteps: number;
+
+  currentQuestion: string;
+
+  collectedAnswers: string[];
+}
+
+// -------------------------
+// AI RESPONSE
+// -------------------------
+
 export interface AIResponse {
 
   summary: string;
@@ -33,6 +54,10 @@ export interface AIResponse {
   router_decision?: RouterDecision;
 }
 
+// -------------------------
+// MESSAGE
+// -------------------------
+
 export interface Message {
 
   id: string;
@@ -51,6 +76,10 @@ export interface Message {
   }[];
 }
 
+// -------------------------
+// STORE
+// -------------------------
+
 export interface ChatState {
 
   messages: Message[];
@@ -60,11 +89,18 @@ export interface ChatState {
   lastAnalysis:
     AnalysisSnapshot | null;
 
+  interviewState:
+    InterviewState;
+
   isLoading: boolean;
 
   status: string | null;
 
   error: string | null;
+
+  // -------------------------
+  // CHAT
+  // -------------------------
 
   addMessage: (
     message: Message
@@ -75,22 +111,52 @@ export interface ChatState {
     updates: Partial<Message>
   ) => void;
 
+  // -------------------------
+  // LOADING
+  // -------------------------
+
   setLoading: (
     loading: boolean,
     status?: string | null
   ) => void;
 
+  // -------------------------
+  // MEMORY
+  // -------------------------
+
   setMedicalMemory: (
     memory: Partial<MedicalMemory>
   ) => void;
+
+  // -------------------------
+  // ANALYSIS
+  // -------------------------
 
   setLastAnalysis: (
     analysis: AnalysisSnapshot | null
   ) => void;
 
+  // -------------------------
+  // INTERVIEW FLOW
+  // -------------------------
+
+  setInterviewState: (
+    updates: Partial<InterviewState>
+  ) => void;
+
+  resetInterview: () => void;
+
+  // -------------------------
+  // ERROR
+  // -------------------------
+
   setError: (
     error: string | null
   ) => void;
+
+  // -------------------------
+  // CLEAR
+  // -------------------------
 
   clearHistory: () => void;
 }
