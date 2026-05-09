@@ -1,4 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+// ESM: keep explicit .js extension for Vercel serverless runtime resolution.
 import { MedicalOrchestrator } from '../src/ai/orchestration/medicalOrchestrator.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

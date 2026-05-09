@@ -1,4 +1,5 @@
 // src/ai/router/medicalRouter.ts
+// ESM: keep explicit .js extensions for runtime imports after TypeScript transpilation.
 import { OpenAIProvider } from "../providers/openaiProvider.js";
 import { RouterDecision, UserIntent, ResponseMode, MedicalMemory, AnalysisSnapshot } from "../types/index.js";
 
