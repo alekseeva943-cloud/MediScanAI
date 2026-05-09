@@ -276,9 +276,43 @@ export const ChatInput = ({
   // QUICK REPLIES
   // -------------------------
 
+  const interviewState =
+    useChatStore(state => state.interviewState);
+
+  const setInterviewState =
+    useChatStore(state => state.setInterviewState);
+
   const handleSuggestionClick = (
     suggestion: string
   ) => {
+
+    // -------------------------
+    // SKIP QUESTION
+    // -------------------------
+
+    if (
+      suggestion === 'Пропустить'
+      &&
+      interviewState.active
+    ) {
+
+      const currentStep =
+        interviewState.currentStep || 1;
+
+      setInterviewState({
+
+        currentStep:
+          currentStep + 1
+      });
+
+      onSend('__SKIP__');
+
+      return;
+    }
+
+    // -------------------------
+    // NORMAL ANSWER
+    // -------------------------
 
     onSend(suggestion);
   };
@@ -292,73 +326,73 @@ export const ChatInput = ({
       <AnimatePresence>
 
         {suggestions &&
-         suggestions.length > 0 &&
-         !isLoading && (
+          suggestions.length > 0 &&
+          !isLoading && (
 
-          <motion.div
+            <motion.div
 
-            initial={{
-              opacity: 0,
-              y: 10
-            }}
+              initial={{
+                opacity: 0,
+                y: 10
+              }}
 
-            animate={{
-              opacity: 1,
-              y: 0
-            }}
+              animate={{
+                opacity: 1,
+                y: 0
+              }}
 
-            exit={{
-              opacity: 0,
-              y: 10
-            }}
+              exit={{
+                opacity: 0,
+                y: 10
+              }}
 
-            className="space-y-3"
-          >
+              className="space-y-3"
+            >
 
-            {/* HEADER */}
+              {/* HEADER */}
 
-            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center justify-between px-1">
 
-              <div className="flex flex-col">
+                <div className="flex flex-col">
 
-                <span className="text-[11px] uppercase tracking-widest text-slate-400 font-bold">
-                  Подсказки
-                </span>
+                  <span className="text-[11px] uppercase tracking-widest text-slate-400 font-bold">
+                    Подсказки
+                  </span>
 
-                <span className="text-sm text-slate-500 mt-1">
-                  Выберите вариант или продолжите сообщение
-                </span>
+                  <span className="text-sm text-slate-500 mt-1">
+                    Выберите вариант или продолжите сообщение
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* BUTTONS */}
+              {/* BUTTONS */}
 
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              <div className="flex flex-wrap gap-2 pb-1">
 
-              {suggestions
-                .filter(Boolean)
-                .slice(0, 6)
-                .map((s, i) => (
+                {suggestions
+                  .filter(Boolean)
+                  .slice(0, 6)
+                  .map((s, i) => (
 
-                <Button
+                    <Button
 
-                  key={i}
+                      key={i}
 
-                  variant="secondary"
+                      variant="secondary"
 
-                  className="whitespace-nowrap rounded-full py-1.5 px-4 h-auto text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
+                      className="whitespace-nowrap rounded-full py-1.5 px-4 h-auto text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
 
-                  onClick={() =>
-                    handleSuggestionClick(s)
-                  }
-                >
-                  {s}
-                </Button>
-              ))}
-            </div>
+                      onClick={() =>
+                        handleSuggestionClick(s)
+                      }
+                    >
+                      {s}
+                    </Button>
+                  ))}
+              </div>
 
-          </motion.div>
-        )}
+            </motion.div>
+          )}
       </AnimatePresence>
 
       {/* CAMERA */}
