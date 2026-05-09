@@ -1,5 +1,5 @@
 // src/ai/orchestration/medicalOrchestrator.ts
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { OpenAIProvider } from "../providers/openaiProvider";
 import { MedicalRouter } from "../router/medicalRouter";
 import { SYSTEM_PROMPT } from "../prompts/systemPrompt";
 import { ANALYSIS_PROMPT } from "../prompts/analysisPrompt";
@@ -12,12 +12,12 @@ import {
 } from "../types";
 
 export class MedicalOrchestrator {
-  private genAI: GoogleGenerativeAI;
+  private provider: OpenAIProvider;
   private router: MedicalRouter;
 
   constructor(apiKey?: string) {
-    const key = apiKey || process.env.GEMINI_API_KEY || '';
-    this.genAI = new GoogleGenerativeAI(key);
+    const key = apiKey || process.env.OPENAI_API_KEY || '';
+    this.provider = new OpenAIProvider(key);
     this.router = new MedicalRouter(key);
   }
 
@@ -40,12 +40,12 @@ export class MedicalOrchestrator {
 
     // 2. Select strategy based on mode
     let systemInstruction = SYSTEM_PROMPT;
-    let modelName = "gemini-1.5-flash-8b"; // Default to fast model
+    let modelName: "gpt-4o-mini" | "gpt-4.1-mini" = "gpt-4o-mini"; // Default to fast model
 
     switch (decision.mode) {
       case ResponseMode.FULL_MEDICAL_ANALYSIS:
         systemInstruction += "\n" + ANALYSIS_PROMPT;
-        modelName = "gemini-1.5-pro"; // Use stronger model for analysis
+        modelName = "gpt-4.1-mini"; // Use stronger model for analysis
         break;
       case ResponseMode.ANALYSIS_UPDATE_MODE:
         systemInstruction += "\n" + UPDATE_ANALYSIS_PROMPT;
@@ -59,23 +59,16 @@ export class MedicalOrchestrator {
         break;
     }
 
-    const model = this.genAI.getGenerativeModel({ 
+    const text = await this.provider.generateText({
       model: modelName,
-      systemInstruction: systemInstruction 
+      systemInstruction,
+      history,
+      userInput,
+      imageParts
     });
 
-    const chat = model.startChat({
-      history: history.map(m => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.content }]
-      }))
-    });
-
-    const result = await chat.sendMessage([userInput, ...imageParts]);
-    const response = await result.response;
-    
     return {
-      text: response.text(),
+      text,
       decision
     };
   }

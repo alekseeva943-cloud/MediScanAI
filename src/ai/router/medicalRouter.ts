@@ -1,14 +1,13 @@
 // src/ai/router/medicalRouter.ts
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { OpenAIProvider } from "../providers/openaiProvider";
 import { RouterDecision, UserIntent, ResponseMode, MedicalMemory, AnalysisSnapshot } from "../types";
 
 export class MedicalRouter {
-  private model: any;
+  private provider: OpenAIProvider;
 
   constructor(apiKey?: string) {
-    const key = apiKey || process.env.GEMINI_API_KEY || '';
-    const genAI = new GoogleGenerativeAI(key);
-    this.model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-8b" });
+    const key = apiKey || process.env.OPENAI_API_KEY || '';
+    this.provider = new OpenAIProvider(key);
   }
 
   async decide(
@@ -52,9 +51,7 @@ export class MedicalRouter {
     `;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const text = await this.provider.generateRouterDecision(prompt);
       // Extract JSON from response if it's wrapped in triple backticks
       const jsonStr = text.replace(/```json|```/g, "").trim();
       return JSON.parse(jsonStr);
