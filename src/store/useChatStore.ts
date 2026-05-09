@@ -5,8 +5,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import {
-  ChatState,
-  Message
+  ChatState
 } from '../types';
 
 export const useChatStore = create<ChatState>()(
@@ -56,9 +55,9 @@ export const useChatStore = create<ChatState>()(
 
         active: false,
 
-        currentStep: 0,
+        currentStep: 1,
 
-        totalSteps: 0,
+        totalSteps: 1,
 
         currentQuestion: '',
 
@@ -115,7 +114,7 @@ export const useChatStore = create<ChatState>()(
 
         set({
           isLoading: loading,
-          status: status
+          status
         }),
 
       // -------------------------
@@ -168,9 +167,9 @@ export const useChatStore = create<ChatState>()(
 
             active: false,
 
-            currentStep: 0,
+            currentStep: 1,
 
-            totalSteps: 0,
+            totalSteps: 1,
 
             currentQuestion: '',
 
@@ -185,7 +184,7 @@ export const useChatStore = create<ChatState>()(
       setError: (error) =>
 
         set({
-          error: error
+          error
         }),
 
       // -------------------------
@@ -221,9 +220,9 @@ export const useChatStore = create<ChatState>()(
 
             active: false,
 
-            currentStep: 0,
+            currentStep: 1,
 
-            totalSteps: 0,
+            totalSteps: 1,
 
             currentQuestion: '',
 

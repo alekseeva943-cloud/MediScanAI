@@ -4,7 +4,7 @@ import { useRef, useEffect, useState } from 'react';
 
 import ReactMarkdown from 'react-markdown';
 
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 
 import { Message } from '../types';
 
@@ -105,8 +105,8 @@ export const MessageList = ({
             </h2>
 
             <p className="text-sm max-w-xs mx-auto">
-              Загрузите фото лекарства,
-              рецепта или задайте вопрос.
+              Опишите симптомы, загрузите фото
+              или отправьте голосовое сообщение.
             </p>
 
           </div>
@@ -133,6 +133,10 @@ export const MessageList = ({
         const isEmergency =
           renderMode ===
             'EMERGENCY_WARNING_MODE';
+
+        const isClarification =
+          renderMode ===
+            'CLARIFICATION_MODE';
 
         return (
 
@@ -164,7 +168,9 @@ export const MessageList = ({
                 ? 'bg-blue-50 text-blue-500'
                 : isEmergency
                   ? 'bg-red-100 text-red-500'
-                  : 'bg-slate-100 text-slate-500'
+                  : isClarification
+                    ? 'bg-amber-100 text-amber-600'
+                    : 'bg-slate-100 text-slate-500'
             }`}>
 
               {message.role === 'user'
@@ -191,7 +197,9 @@ export const MessageList = ({
                     ? 'bg-gradient-to-br from-emerald-50 to-white border border-emerald-100 rounded-3xl shadow-md'
                     : isEmergency
                       ? 'bg-red-50 border border-red-200 rounded-2xl shadow-sm'
-                      : 'message-ai'
+                      : isClarification
+                        ? 'bg-amber-50 border border-amber-100 rounded-3xl shadow-sm'
+                        : 'message-ai'
               }`}>
 
                 {/* ATTACHMENTS */}
@@ -278,9 +286,43 @@ export const MessageList = ({
                   </div>
                 ))}
 
-                {/* MEDICAL DASHBOARD */}
+                {/* CLARIFICATION MODE */}
 
-                {isMedicalDashboard && message.ai_data ? (
+                {isClarification ? (
+
+                  <div className="space-y-4">
+
+                    <div className="flex items-center justify-between">
+
+                      <div>
+
+                        <div className="text-[11px] uppercase tracking-widest font-bold text-amber-600">
+                          Медицинское уточнение
+                        </div>
+
+                        <div className="text-xs text-slate-500 mt-1">
+                          Ответьте на вопрос или выберите вариант ниже
+                        </div>
+
+                      </div>
+
+                      <div className="text-xs font-semibold text-slate-400">
+                        Шаг
+                      </div>
+
+                    </div>
+
+                    <div className="text-base font-medium text-slate-800 leading-relaxed">
+
+                      <ReactMarkdown>
+                        {message.content}
+                      </ReactMarkdown>
+
+                    </div>
+
+                  </div>
+
+                ) : isMedicalDashboard && message.ai_data ? (
 
                   <MedicalAnalysis
                     data={message.ai_data}
