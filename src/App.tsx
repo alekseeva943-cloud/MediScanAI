@@ -1,6 +1,6 @@
 // src/App.tsx
 
-import { useState, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { useChatStore } from './store/useChatStore';
 
@@ -163,7 +163,7 @@ export default function App() {
       }
 
       // -------------------------
-      // LOADING STATES
+      // LOADING
       // -------------------------
 
       setLoading(
@@ -253,7 +253,7 @@ export default function App() {
       }
 
       // -------------------------
-      // MEMORY + ANALYSIS
+      // MEMORY
       // -------------------------
 
       const medicalMemory =
@@ -325,7 +325,10 @@ export default function App() {
 
       if (
         decision.mode ===
-        'FULL_MEDICAL_ANALYSIS'
+          'FULL_MEDICAL_ANALYSIS' ||
+
+        decision.mode ===
+          'ANALYSIS_UPDATE_MODE'
       ) {
 
         try {
@@ -340,7 +343,7 @@ export default function App() {
           aiData = {
 
             summary:
-              parsed.summary,
+              parsed.summary || aiText,
 
             possible_risks:
               parsed.risks || [],
@@ -357,7 +360,11 @@ export default function App() {
             medical_warning:
               "Это предварительный анализ ИИ. Обратитесь к врачу.",
 
-            is_analysis_needed: false
+            render_mode:
+              decision.mode,
+
+            router_decision:
+              decision
           };
 
         } catch {
@@ -377,7 +384,11 @@ export default function App() {
             medical_warning:
               "Ошибка разбора анализа.",
 
-            is_analysis_needed: true
+            render_mode:
+              decision.mode,
+
+            router_decision:
+              decision
           };
         }
 
@@ -402,8 +413,11 @@ export default function App() {
               ? 'НЕМЕДЛЕННО ОБРАТИТЕСЬ К ВРАЧУ!'
               : 'Это ИИ ассистент.',
 
-          is_analysis_needed:
-            decision.needsClarification
+          render_mode:
+            decision.mode,
+
+          router_decision:
+            decision
         };
       }
 
@@ -443,6 +457,7 @@ export default function App() {
     }
 
   }, [
+
     messages,
 
     addMessage,
@@ -459,8 +474,11 @@ export default function App() {
     <div className="flex flex-col h-screen max-w-2xl mx-auto bg-white shadow-2xl relative overflow-hidden">
 
       <AnimatePresence>
+
         {error && (
+
           <motion.div
+
             initial={{
               opacity: 0,
               y: -20
@@ -501,6 +519,8 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* HEADER */}
 
       <header className="px-5 py-4 bg-teal-600 border-b border-teal-700/50 flex items-center justify-between z-20 shadow-md">
 
@@ -552,6 +572,8 @@ export default function App() {
         </div>
       </header>
 
+      {/* WARNING */}
+
       <div className="bg-amber-50 px-4 py-1.5 flex items-center justify-center gap-2 border-b border-amber-100 z-10">
 
         <ShieldAlert
@@ -564,6 +586,8 @@ export default function App() {
         </span>
       </div>
 
+      {/* CHAT */}
+
       <main className="flex-1 flex flex-col relative min-h-0">
 
         <MessageList
@@ -572,6 +596,8 @@ export default function App() {
         />
 
       </main>
+
+      {/* INPUT */}
 
       <footer className="relative z-20">
 
@@ -586,6 +612,8 @@ export default function App() {
         />
 
       </footer>
+
+      {/* BACKGROUND */}
 
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[30%] bg-blue-400/5 blur-[100px] rounded-full pointer-events-none" />
 
