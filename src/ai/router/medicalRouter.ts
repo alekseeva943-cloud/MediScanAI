@@ -1,7 +1,3 @@
-// src/ai/router/medicalRouter.ts
-
-// ESM: keep explicit .js extensions for runtime imports after TypeScript transpilation.
-
 import { OpenAIProvider } from "../providers/openaiProvider.js";
 
 import {
@@ -51,6 +47,12 @@ export class MedicalRouter {
       medications:
         memory.medications.slice(-5),
 
+      previousDiagnoses:
+        memory.diagnoses.slice(-5),
+
+      extractedFacts:
+        memory.extractedFacts.slice(-10),
+
       hasPreviousAnalysis:
         !!lastAnalysis,
 
@@ -79,61 +81,57 @@ export class MedicalRouter {
           lastAnalysis
         );
 
-      const prompt = `
-You are a medical routing system.
+      const shortHistory =
+        history
+          .slice(-6)
+          .map((m: any) => ({
+            role: m.role,
+            content: String(m.content).slice(0, 300)
+          }));
 
-You DO NOT diagnose.
+      const prompt = `
+You are an advanced medical AI router.
+
+You NEVER diagnose.
 
 You ONLY decide:
-- does the AI need clarification?
-- is this emergency?
-- is there enough information for analysis?
+- Does the AI need more clarification?
+- Is there enough data for medical analysis?
+- Is this an emergency?
+- What is the best next interview direction?
 
-VERY IMPORTANT:
+CRITICAL BEHAVIOR:
 
-If the user provides ONLY:
-- one symptom
-- vague pain
-- short complaint
-- incomplete medical info
+The AI must behave like a real medical assistant.
 
-You MUST choose:
-CLARIFICATION_MODE
+If information is incomplete:
+→ choose CLARIFICATION_MODE
 
-DO NOT jump directly to diagnosis.
+If information is detailed enough:
+→ choose FULL_MEDICAL_ANALYSIS
 
-The AI should FIRST collect:
-- duration
-- pain type
-- severity
-- swelling
-- fever
-- injury
-- worsening symptoms
-- movement limitation
+DO NOT ask many questions at once.
 
-EXAMPLES:
+DO NOT generate questionnaires.
 
-USER:
-"My knee hurts"
+The interview must feel natural and adaptive.
 
-CORRECT:
-CLARIFICATION_MODE
+GOOD:
+User: "My elbow is swollen"
+AI: clarification
 
-USER:
-"I have sharp knee pain for 3 days after falling, swelling, can't walk normally"
-
-CORRECT:
-FULL_MEDICAL_ANALYSIS
+GOOD:
+User: "My elbow is swollen for 5 days after trauma, severe pain, fever"
+AI: analysis
 
 EMERGENCY CONDITIONS:
 - chest pain
-- breathing problems
+- breathing difficulty
 - stroke symptoms
-- severe allergic reaction
-- severe bleeding
 - suicidal intent
-- unconsciousness
+- severe allergic reaction
+- loss of consciousness
+- severe bleeding
 
 AVAILABLE MODES:
 
@@ -143,8 +141,11 @@ AVAILABLE MODES:
 - ANALYSIS_UPDATE_MODE
 - EMERGENCY_WARNING_MODE
 
-INPUT:
+CURRENT CONTEXT:
 ${JSON.stringify(compact)}
+
+RECENT CHAT:
+${JSON.stringify(shortHistory)}
 
 RETURN ONLY JSON.
 
@@ -154,19 +155,33 @@ FORMAT:
   "mode": "CLARIFICATION_MODE",
   "needsClarification": true,
   "clarificationQuestions": [
-    "Когда началась боль?",
-    "Боль острая или тянущая?",
-    "Есть ли отек?"
+    "duration",
+    "pain",
+    "severity",
+    "swelling",
+    "mobility"
   ],
   "emergencyLevel": "low",
   "isUpdateToExisting": false
 }
+
+IMPORTANT:
+clarificationQuestions are NOT real questions.
+
+They are ONLY interview topics for the AI interviewer.
+
+Use short topic names only.
 `;
 
       const text =
         await this.provider.generateRouterDecision(
           prompt
         );
+
+      console.log(
+        "RAW ROUTER RESPONSE:",
+        text
+      );
 
       const cleaned = text
         .replace(/```json/g, "")
@@ -190,7 +205,11 @@ FORMAT:
           parsed.needsClarification ?? true,
 
         clarificationQuestions:
-          parsed.clarificationQuestions || [],
+          Array.isArray(
+            parsed.clarificationQuestions
+          )
+            ? parsed.clarificationQuestions
+            : [],
 
         emergencyLevel:
           parsed.emergencyLevel || 'low',
@@ -217,9 +236,9 @@ FORMAT:
         needsClarification: true,
 
         clarificationQuestions: [
-          "Когда появились симптомы?",
-          "Что именно вас беспокоит?",
-          "Есть ли дополнительные симптомы?"
+          "duration",
+          "pain",
+          "severity"
         ],
 
         emergencyLevel: 'low',

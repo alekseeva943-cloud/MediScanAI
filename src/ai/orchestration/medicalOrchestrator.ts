@@ -1,8 +1,4 @@
-  // src/ai/orchestration/medicalOrchestrator.ts
-
-  // ESM: keep explicit .js extensions for runtime imports after TypeScript transpilation.
-
- import { OpenAIProvider } from "../providers/openaiProvider.js";
+import { OpenAIProvider } from "../providers/openaiProvider.js";
 
 import { MedicalRouter } from "../router/medicalRouter.js";
 
@@ -148,10 +144,6 @@ ${userInput.slice(0, 4000)}
     memory: MedicalMemory,
     lastAnalysis: AnalysisSnapshot | null
   ) {
-
-    // -------------------------
-    // LIMIT INPUT SIZE
-    // -------------------------
 
     const safeUserInput =
       userInput.slice(0, 6000);
@@ -324,27 +316,24 @@ CRITICAL RULES:
 
 - Ask ONLY ONE short medical question.
 - Never ask multiple questions at once.
+- Never generate questionnaires.
+- Never generate answer options inside the text.
 - Never write long explanations.
 - Never write diagnosis assumptions.
 - Never generate large text blocks.
-- Keep the message under 25 words.
+- Keep the message under 20 words.
 - Focus ONLY on the single most important next question.
 - Behave like a calm medical assistant.
 - Questions must feel natural and conversational.
 
-You MUST ask questions sequentially.
-
-Good example:
+GOOD:
 "Когда появились симптомы?"
 
-Bad example:
-"Когда появились симптомы? Есть ли температура? Была ли травма?"
+BAD:
+"Когда появились симптомы? Сегодня / Вчера / Давно"
 
-IMPORTANT:
-At the end of the message ALWAYS add short answer suggestions.
-
-Example:
-Сегодня / Вчера / Несколько дней / Давно
+BAD:
+"Когда появились симптомы? Есть ли температура?"
 
 INTERVIEW CONTEXT:
 ${decision.clarificationQuestions
