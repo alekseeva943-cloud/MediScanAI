@@ -324,11 +324,15 @@ export default function App() {
       let aiData: AIResponse;
 
       if (
+
         decision.mode ===
-          'FULL_MEDICAL_ANALYSIS' ||
+          'FULL_MEDICAL_ANALYSIS'
+
+        ||
 
         decision.mode ===
           'ANALYSIS_UPDATE_MODE'
+
       ) {
 
         try {
@@ -357,6 +361,9 @@ export default function App() {
             suggested_actions:
               parsed.suggested_actions || [],
 
+            quick_replies:
+              parsed.quick_replies || [],
+
             medical_warning:
               "Это предварительный анализ ИИ. Обратитесь к врачу.",
 
@@ -380,6 +387,8 @@ export default function App() {
             danger_level: 'low',
 
             suggested_actions: [],
+
+            quick_replies: [],
 
             medical_warning:
               "Ошибка разбора анализа.",
@@ -405,8 +414,9 @@ export default function App() {
           danger_level:
             decision.emergencyLevel,
 
-          suggested_actions:
-            decision.clarificationQuestions || [],
+          suggested_actions: [],
+
+          quick_replies: [],
 
           medical_warning:
             decision.emergencyLevel === 'high'
@@ -471,7 +481,10 @@ export default function App() {
   ]);
 
   return (
+
     <div className="flex flex-col h-screen max-w-2xl mx-auto bg-white shadow-2xl relative overflow-hidden">
+
+      {/* ERROR */}
 
       <AnimatePresence>
 
@@ -506,6 +519,7 @@ export default function App() {
               <p className="text-sm font-medium">
                 {error}
               </p>
+
             </div>
 
             <button
@@ -548,6 +562,7 @@ export default function App() {
               <span className="text-[10px] text-teal-50/70 font-bold uppercase tracking-widest">
                 Ассистент онлайн
               </span>
+
             </div>
           </div>
         </div>
@@ -607,7 +622,7 @@ export default function App() {
           isLoading={isLoading}
 
           suggestions={
-            lastAiResponse?.suggested_actions
+            lastAiResponse?.quick_replies
           }
         />
 
@@ -618,6 +633,7 @@ export default function App() {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[30%] bg-blue-400/5 blur-[100px] rounded-full pointer-events-none" />
 
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[30%] bg-teal-400/5 blur-[100px] rounded-full pointer-events-none" />
+
     </div>
   );
 }

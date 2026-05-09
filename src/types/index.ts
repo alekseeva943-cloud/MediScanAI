@@ -24,6 +24,8 @@ export interface AIResponse {
 
   suggested_actions: string[];
 
+  quick_replies: string[];
+
   medical_warning: string;
 
   render_mode?: ResponseMode;
