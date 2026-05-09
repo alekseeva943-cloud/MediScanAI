@@ -43,7 +43,7 @@ export class MedicalRouter {
     return {
 
       userMessage:
-        userInput.slice(0, 1500),
+        userInput.slice(0, 1200),
 
       recentSymptoms:
         memory.symptoms.slice(-5),
@@ -52,7 +52,10 @@ export class MedicalRouter {
         memory.medications.slice(-5),
 
       hasPreviousAnalysis:
-        !!lastAnalysis
+        !!lastAnalysis,
+
+      hasImage:
+        memory.uploadedDocuments.length > 0
     };
   }
 
@@ -77,58 +80,84 @@ export class MedicalRouter {
         );
 
       const prompt = `
-You are a lightweight medical AI router.
+You are a medical routing system.
 
-Your ONLY task is choosing response mode.
+You DO NOT diagnose.
 
-DO NOT provide medical analysis.
+You ONLY decide:
+- does the AI need clarification?
+- is this emergency?
+- is there enough information for analysis?
+
+VERY IMPORTANT:
+
+If the user provides ONLY:
+- one symptom
+- vague pain
+- short complaint
+- incomplete medical info
+
+You MUST choose:
+CLARIFICATION_MODE
+
+DO NOT jump directly to diagnosis.
+
+The AI should FIRST collect:
+- duration
+- pain type
+- severity
+- swelling
+- fever
+- injury
+- worsening symptoms
+- movement limitation
+
+EXAMPLES:
+
+USER:
+"My knee hurts"
+
+CORRECT:
+CLARIFICATION_MODE
+
+USER:
+"I have sharp knee pain for 3 days after falling, swelling, can't walk normally"
+
+CORRECT:
+FULL_MEDICAL_ANALYSIS
+
+EMERGENCY CONDITIONS:
+- chest pain
+- breathing problems
+- stroke symptoms
+- severe allergic reaction
+- severe bleeding
+- suicidal intent
+- unconsciousness
 
 AVAILABLE MODES:
 
-1. CASUAL_CONVERSATION
-- greetings
-- simple conversation
-- casual questions
-
-2. CLARIFICATION_MODE
-- not enough information
-- missing symptoms/details
-
-3. FULL_MEDICAL_ANALYSIS
-- multiple symptoms
-- medical reports
-- images
-- complex requests
-- analysis requests
-
-4. ANALYSIS_UPDATE_MODE
-- user updates previous analysis
-- user adds new symptoms to existing case
-
-5. EMERGENCY_WARNING_MODE
-- chest pain
-- breathing difficulty
-- stroke symptoms
-- severe bleeding
-- suicidal intent
-- loss of consciousness
-- severe allergic reaction
-
-IMPORTANT:
-Be strict.
-Do NOT over-trigger FULL_MEDICAL_ANALYSIS.
+- CASUAL_CONVERSATION
+- CLARIFICATION_MODE
+- FULL_MEDICAL_ANALYSIS
+- ANALYSIS_UPDATE_MODE
+- EMERGENCY_WARNING_MODE
 
 INPUT:
 ${JSON.stringify(compact)}
 
-Return ONLY valid JSON.
+RETURN ONLY JSON.
 
 FORMAT:
 {
-  "intent": "CASUAL_CHAT",
-  "mode": "CASUAL_CONVERSATION",
-  "needsClarification": false,
-  "clarificationQuestions": [],
+  "intent": "SYMPTOM_ANALYSIS",
+  "mode": "CLARIFICATION_MODE",
+  "needsClarification": true,
+  "clarificationQuestions": [
+    "Когда началась боль?",
+    "Боль острая или тянущая?",
+    "Есть ли отек?"
+  ],
   "emergencyLevel": "low",
   "isUpdateToExisting": false
 }
@@ -151,14 +180,14 @@ FORMAT:
 
         intent:
           parsed.intent ||
-          UserIntent.CASUAL_CHAT,
+          UserIntent.SYMPTOM_ANALYSIS,
 
         mode:
           parsed.mode ||
-          ResponseMode.CASUAL_CONVERSATION,
+          ResponseMode.CLARIFICATION_MODE,
 
         needsClarification:
-          parsed.needsClarification || false,
+          parsed.needsClarification ?? true,
 
         clarificationQuestions:
           parsed.clarificationQuestions || [],
@@ -183,11 +212,15 @@ FORMAT:
           UserIntent.CASUAL_CHAT,
 
         mode:
-          ResponseMode.CASUAL_CONVERSATION,
+          ResponseMode.CLARIFICATION_MODE,
 
-        needsClarification: false,
+        needsClarification: true,
 
-        clarificationQuestions: [],
+        clarificationQuestions: [
+          "Когда появились симптомы?",
+          "Что именно вас беспокоит?",
+          "Есть ли дополнительные симптомы?"
+        ],
 
         emergencyLevel: 'low',
 
