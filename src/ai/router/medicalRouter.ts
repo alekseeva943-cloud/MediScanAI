@@ -1,6 +1,6 @@
 // src/ai/router/medicalRouter.ts
-import { OpenAIProvider } from "../providers/openaiProvider";
-import { RouterDecision, UserIntent, ResponseMode, MedicalMemory, AnalysisSnapshot } from "../types";
+import { OpenAIProvider } from "../providers/openaiProvider.js";
+import { RouterDecision, UserIntent, ResponseMode, MedicalMemory, AnalysisSnapshot } from "../types/index.js";
 
 export class MedicalRouter {
   private provider: OpenAIProvider;
