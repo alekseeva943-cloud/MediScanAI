@@ -1,4 +1,5 @@
 // src/ai/types/index.ts
+
 export enum ResponseMode {
   CASUAL_CONVERSATION = 'CASUAL_CONVERSATION',
   CLARIFICATION_MODE = 'CLARIFICATION_MODE',
@@ -15,8 +16,6 @@ export enum UserIntent {
   DOCUMENT_ANALYSIS = 'DOCUMENT_ANALYSIS',
   EMERGENCY_RISK = 'EMERGENCY_RISK',
   FOLLOW_UP = 'FOLLOW_UP',
-  FULL_ANALYSIS = 'FULL_ANALYSIS',
-  ANALYSIS_UPDATE = 'ANALYSIS_UPDATE',
 }
 
 export interface MedicalMemory {
@@ -27,27 +26,47 @@ export interface MedicalMemory {
   riskFactors: string[];
   uploadedDocuments: string[];
   extractedFacts: string[];
+
+  age?: string;
+  sex?: string;
+
+  chronicConditions?: string[];
+  surgeries?: string[];
+  familyHistory?: string[];
 }
 
 export interface AnalysisSnapshot {
   timestamp: number;
+
   summary: string;
+
   probableDiagnoses: string[];
+
   risks: string[];
+
   medications: Array<{
     name: string;
     action: string;
     contraindications: string[];
   }>;
+
   recommendations: string[];
+
+  dangerLevel: 'low' | 'medium' | 'high';
+
+  suggestedActions: string[];
 }
 
 export interface RouterDecision {
   intent: UserIntent;
+
   mode: ResponseMode;
-  isAnalysisNeeded: boolean;
+
   needsClarification: boolean;
+
   clarificationQuestions: string[];
+
   emergencyLevel: 'low' | 'medium' | 'high';
+
   isUpdateToExisting: boolean;
 }

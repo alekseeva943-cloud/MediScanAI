@@ -1,43 +1,131 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+// api/chat.ts
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+import type {
+  VercelRequest,
+  VercelResponse
+} from '@vercel/node';
+
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+) {
+
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Метод не поддерживается' });
+
+    return res.status(405).json({
+      error: 'Метод не поддерживается'
+    });
   }
 
   try {
-    const { messages, memory, lastAnalysis } = req.body;
-    const { MedicalOrchestrator } = await import('../src/ai/orchestration/medicalOrchestrator.js');
-    const orchestrator = new MedicalOrchestrator();
 
-    // The frontend should pass the last message separately or we take the last one
-    const lastMessage = messages[messages.length - 1];
-    const history = messages.slice(0, -1);
+    const {
+      messages,
+      memory,
+      lastAnalysis
+    } = req.body;
 
-    // Extract image parts if present in the last message
+    const {
+      MedicalOrchestrator
+    } = await import(
+      '../src/ai/orchestration/medicalOrchestrator.js'
+    );
+
+    const orchestrator =
+      new MedicalOrchestrator();
+
+    const safeMessages =
+      Array.isArray(messages)
+        ? messages
+        : [];
+
+    const lastMessage =
+      safeMessages[safeMessages.length - 1];
+
+    const history =
+      safeMessages.slice(-6, -1);
+
+    if (!lastMessage) {
+
+      return res.status(400).json({
+        error: 'Нет сообщения пользователя'
+      });
+    }
+
+    // -------------------------
+    // IMAGE EXTRACTION
+    // -------------------------
+
     const imageParts: any[] = [];
+
     if (Array.isArray(lastMessage.content)) {
+
       lastMessage.content.forEach((part: any) => {
-        if (part.type === 'image_url') {
-          const base64Data = part.image_url.url.split(',')[1];
+
+        if (
+          part?.type === 'image_url' &&
+          part?.image_url?.url
+        ) {
+
+          const url = part.image_url.url;
+
+          const matches =
+            url.match(/^data:(.*?);base64,(.*)$/);
+
+          if (!matches) {
+            return;
+          }
+
+          const mimeType = matches[1];
+
+          const base64Data = matches[2];
+
           imageParts.push({
             inlineData: {
               data: base64Data,
-              mimeType: "image/jpeg"
+              mimeType
             }
           });
         }
       });
     }
 
-    const userInput = typeof lastMessage.content === 'string' 
-      ? lastMessage.content 
-      : lastMessage.content.find((p: any) => p.type === 'text')?.text || "";
+    // -------------------------
+    // USER INPUT EXTRACTION
+    // -------------------------
 
-    const { text, decision } = await orchestrator.processRequest(
+    let userInput = "";
+
+    if (typeof lastMessage.content === 'string') {
+
+      userInput = lastMessage.content;
+
+    } else if (Array.isArray(lastMessage.content)) {
+
+      const textPart =
+        lastMessage.content.find(
+          (p: any) =>
+            p.type === 'text' ||
+            p.type === 'input_text'
+        );
+
+      userInput =
+        textPart?.text || "";
+    }
+
+    // -------------------------
+    // PROCESS REQUEST
+    // -------------------------
+
+    const {
+      text,
+      decision,
+      updatedMemory
+    } = await orchestrator.processRequest(
       userInput,
       imageParts,
       history,
+
       memory || {
         symptoms: [],
         medications: [],
@@ -45,19 +133,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         allergies: [],
         riskFactors: [],
         uploadedDocuments: [],
-        extractedFacts: []
+        extractedFacts: [],
+
+        chronicConditions: [],
+        surgeries: [],
+        familyHistory: []
       },
+
       lastAnalysis || null
     );
 
-    // If it's a full analysis, we might want to return the structured JSON
-    // The orchestrator currently returns raw text from the model
-    res.status(200).json({ text, decision });
+    // -------------------------
+    // TRY PARSE ANALYSIS
+    // -------------------------
+
+    let parsedAnalysis = null;
+
+    try {
+
+      const cleaned = text
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+
+      parsedAnalysis = JSON.parse(cleaned);
+
+    } catch {
+
+      parsedAnalysis = null;
+    }
+
+    // -------------------------
+    // RESPONSE
+    // -------------------------
+
+    return res.status(200).json({
+      text,
+      decision,
+
+      updatedMemory,
+
+      lastAnalysis:
+        parsedAnalysis || lastAnalysis || null
+    });
+
   } catch (error: any) {
+
     console.error('Chat error:', error);
-    res.status(500).json({ 
+
+    return res.status(500).json({
       error: 'Ошибка при обработке запроса.',
-      details: error.message 
+      details: error?.message || 'Unknown error'
     });
   }
 }

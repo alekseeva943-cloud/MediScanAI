@@ -1,14 +1,26 @@
 // src/ai/router/medicalRouter.ts
+
 // ESM: keep explicit .js extensions for runtime imports after TypeScript transpilation.
+
 import { OpenAIProvider } from "../providers/openaiProvider.js";
-import { UserIntent, ResponseMode } from "../types/index.js";
-import type { RouterDecision, MedicalMemory, AnalysisSnapshot } from "../types/index.js";
+
+import {
+  UserIntent,
+  ResponseMode
+} from "../types/index.js";
+
+import type {
+  RouterDecision,
+  MedicalMemory,
+  AnalysisSnapshot
+} from "../types/index.js";
 
 export class MedicalRouter {
   private provider: OpenAIProvider;
 
   constructor(apiKey?: string) {
     const key = apiKey || process.env.OPENAI_API_KEY || '';
+
     this.provider = new OpenAIProvider(key);
   }
 
@@ -18,54 +30,183 @@ export class MedicalRouter {
     memory: MedicalMemory,
     lastAnalysis: AnalysisSnapshot | null
   ): Promise<RouterDecision> {
+
+    const recentHistory = history
+      .slice(-5)
+      .map((m) => {
+        const content =
+          typeof m.content === "string"
+            ? m.content
+            : JSON.stringify(m.content);
+
+        return `${m.role}: ${content}`;
+      })
+      .join("\n");
+
+    const previousAnalysisSummary = lastAnalysis
+      ? `
+PREVIOUS ANALYSIS SUMMARY:
+${lastAnalysis.summary}
+
+PREVIOUS RISKS:
+${lastAnalysis.risks.join(", ")}
+
+PREVIOUS DIAGNOSES:
+${lastAnalysis.probableDiagnoses.join(", ")}
+`
+      : "NO PREVIOUS ANALYSIS";
+
     const prompt = `
-    You are a Medical AI Router. Your task is to analyze the user input and current state to determine the best response strategy.
+You are a deterministic Medical AI Router.
 
-    CURRENT STATE:
-    - User Input: "${userInput}"
-    - Medical Memory: ${JSON.stringify(memory)}
-    - Has Last Analysis: ${!!lastAnalysis}
+Your task:
+Analyze the user request and return ONLY valid JSON.
 
-    RULES:
-    1. Detect EMERGENCY: If the user describes life-threatening symptoms (chest pain, severe bleeding, difficulty breathing, etc.), set EMERGENCY_WARNING_MODE.
-    2. Intent Classification:
-       - CASUAL_CHAT: Greetings, how are you, etc.
-       - SYMPTOM_ANALYSIS: Describing new symptoms.
-       - MEDICATION_CHECK: Asking about drug compatibility or dosage.
-       - DOCUMENT_ANALYSIS: Referring to uploaded results or images.
-       - FOLLOW_UP: Asking questions about a previous analysis.
-    3. Mode Selection:
-       - If information is missing to provide a safe answer, use CLARIFICATION_MODE.
-       - If it's a new complex request and we have enough data, use FULL_MEDICAL_ANALYSIS.
-       - If it's a small update to existing data, use ANALYSIS_UPDATE_MODE.
-       - Otherwise, use CASUAL_CONVERSATION or PRELIMINARY_ANALYSIS.
+DO NOT explain anything.
+DO NOT use markdown.
+DO NOT wrap JSON in backticks.
+RETURN JSON ONLY.
 
-    Return ONLY a JSON object:
-    {
-      "intent": "UserIntent",
-      "mode": "ResponseMode",
-      "isAnalysisNeeded": boolean,
-      "needsClarification": boolean,
-      "clarificationQuestions": ["list of questions if needed"],
-      "emergencyLevel": "low" | "medium" | "high",
-      "isUpdateToExisting": boolean
-    }
-    `;
+====================
+USER INPUT
+====================
+
+${userInput}
+
+====================
+RECENT HISTORY
+====================
+
+${recentHistory}
+
+====================
+MEDICAL MEMORY
+====================
+
+${JSON.stringify(memory)}
+
+====================
+PREVIOUS ANALYSIS
+====================
+
+${previousAnalysisSummary}
+
+====================
+AVAILABLE INTENTS
+====================
+
+- CASUAL_CHAT
+- SYMPTOM_ANALYSIS
+- MEDICATION_CHECK
+- DOCUMENT_ANALYSIS
+- EMERGENCY_RISK
+- FOLLOW_UP
+
+====================
+AVAILABLE MODES
+====================
+
+- CASUAL_CONVERSATION
+- CLARIFICATION_MODE
+- PRELIMINARY_ANALYSIS
+- FULL_MEDICAL_ANALYSIS
+- ANALYSIS_UPDATE_MODE
+- EMERGENCY_WARNING_MODE
+
+====================
+ROUTING RULES
+====================
+
+1. EMERGENCY_WARNING_MODE:
+Use ONLY if symptoms may indicate immediate danger:
+- chest pain
+- stroke symptoms
+- severe bleeding
+- loss of consciousness
+- suicidal intent
+- respiratory distress
+
+2. ANALYSIS_UPDATE_MODE:
+Use ONLY if:
+- previous analysis exists
+AND
+- user adds new medical information
+AND
+- user refers to previous findings
+
+3. CLARIFICATION_MODE:
+Use if important information is missing.
+
+4. FULL_MEDICAL_ANALYSIS:
+Use for:
+- complex symptom analysis
+- medication interaction analysis
+- document interpretation
+- multi-factor medical questions
+
+5. PRELIMINARY_ANALYSIS:
+Use for short/simple medical questions.
+
+6. CASUAL_CONVERSATION:
+Use ONLY for greetings or non-medical chat.
+
+====================
+OUTPUT FORMAT
+====================
+
+{
+  "intent": "ONE OF AVAILABLE INTENTS",
+  "mode": "ONE OF AVAILABLE MODES",
+  "needsClarification": true,
+  "clarificationQuestions": ["question 1"],
+  "emergencyLevel": "low",
+  "isUpdateToExisting": false
+}
+`;
 
     try {
       const text = await this.provider.generateRouterDecision(prompt);
-      // Extract JSON from response if it's wrapped in triple backticks
-      const jsonStr = text.replace(/```json|```/g, "").trim();
-      return JSON.parse(jsonStr);
+
+      const cleaned = text
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+
+      const parsed = JSON.parse(cleaned);
+
+      return {
+        intent: parsed.intent || UserIntent.CASUAL_CHAT,
+
+        mode: parsed.mode || ResponseMode.CASUAL_CONVERSATION,
+
+        needsClarification:
+          parsed.needsClarification || false,
+
+        clarificationQuestions:
+          parsed.clarificationQuestions || [],
+
+        emergencyLevel:
+          parsed.emergencyLevel || "low",
+
+        isUpdateToExisting:
+          parsed.isUpdateToExisting || false
+      };
+
     } catch (error) {
+
       console.error("Router error:", error);
+
       return {
         intent: UserIntent.CASUAL_CHAT,
+
         mode: ResponseMode.CASUAL_CONVERSATION,
-        isAnalysisNeeded: false,
+
         needsClarification: false,
+
         clarificationQuestions: [],
+
         emergencyLevel: 'low',
+
         isUpdateToExisting: false
       };
     }
