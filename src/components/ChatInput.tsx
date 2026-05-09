@@ -291,24 +291,43 @@ export const ChatInput = ({
     // -------------------------
 
     if (
-      suggestion === 'Пропустить'
-      &&
-      interviewState.active
-    ) {
+  suggestion === 'Пропустить'
+  &&
+  interviewState.active
+) {
 
-      const currentStep =
-        interviewState.currentStep || 1;
+  const currentStep =
+    interviewState.currentStep || 1;
 
-      setInterviewState({
+  const totalSteps =
+    interviewState.totalSteps || 1;
 
-        currentStep:
-          currentStep + 1
-      });
+  // LAST QUESTION
 
-      onSend('__SKIP__');
+  if (
+    currentStep >= totalSteps
+  ) {
 
-      return;
-    }
+    setInterviewState({
+
+      active: false,
+
+      completed: true
+    });
+
+    return;
+  }
+
+  // NEXT STEP
+
+  setInterviewState({
+
+    currentStep:
+      currentStep + 1
+  });
+
+  return;
+}
 
     // -------------------------
     // NORMAL ANSWER

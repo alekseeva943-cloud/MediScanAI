@@ -55,6 +55,8 @@ export const useChatStore = create<ChatState>()(
 
         active: false,
 
+        completed: false,
+
         currentStep: 0,
 
         totalSteps: 0,
@@ -65,9 +67,7 @@ export const useChatStore = create<ChatState>()(
 
         skippedQuestions: [],
 
-        askedQuestions: [],
-
-        symptomContext: null
+        askedQuestions: []
       },
 
       // -------------------------
@@ -207,6 +207,8 @@ export const useChatStore = create<ChatState>()(
 
             active: false,
 
+            completed: false,
+
             currentStep: 0,
 
             totalSteps: 0,
@@ -217,9 +219,7 @@ export const useChatStore = create<ChatState>()(
 
             skippedQuestions: [],
 
-            askedQuestions: [],
-
-            symptomContext: null
+            askedQuestions: []
           }
         }),
 
@@ -266,6 +266,8 @@ export const useChatStore = create<ChatState>()(
 
             active: false,
 
+            completed: false,
+
             currentStep: 0,
 
             totalSteps: 0,
@@ -276,9 +278,7 @@ export const useChatStore = create<ChatState>()(
 
             skippedQuestions: [],
 
-            askedQuestions: [],
-
-            symptomContext: null
+            askedQuestions: []
           },
 
           isLoading: false,

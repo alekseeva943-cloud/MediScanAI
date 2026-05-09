@@ -20,13 +20,22 @@ export interface InterviewState {
 
   active: boolean;
 
+  completed?: boolean;
+
   currentStep: number;
 
   totalSteps: number;
 
   currentQuestion: string;
 
-  collectedAnswers: string[];
+  collectedAnswers: {
+    question: string;
+    answer: string;
+  }[];
+
+  askedQuestions?: string[];
+
+  skippedQuestions?: string[];
 }
 
 // -------------------------
