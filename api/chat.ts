@@ -1,32 +1,62 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { openai } from './utils/openai.js';
+import { MedicalOrchestrator } from '../src/ai/orchestration/medicalOrchestrator';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
-    return res.status(450).json({ error: 'Метод не поддерживается' });
+    return res.status(405).json({ error: 'Метод не поддерживается' });
   }
 
   try {
-    const { messages, systemPrompt } = req.body;
+    const { messages, memory, lastAnalysis } = req.body;
+    const orchestrator = new MedicalOrchestrator();
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o', // Use gpt-4o for multimodal and better reasoning
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages
-      ],
-      response_format: { type: 'json_object' },
-      max_tokens: 2000,
-    });
+    // The frontend should pass the last message separately or we take the last one
+    const lastMessage = messages[messages.length - 1];
+    const history = messages.slice(0, -1);
 
-    const content = response.choices[0].message.content;
-    if (!content) throw new Error('Empty response from OpenAI');
+    // Extract image parts if present in the last message
+    const imageParts: any[] = [];
+    if (Array.isArray(lastMessage.content)) {
+      lastMessage.content.forEach((part: any) => {
+        if (part.type === 'image_url') {
+          const base64Data = part.image_url.url.split(',')[1];
+          imageParts.push({
+            inlineData: {
+              data: base64Data,
+              mimeType: "image/jpeg"
+            }
+          });
+        }
+      });
+    }
 
-    res.status(200).json(JSON.parse(content));
+    const userInput = typeof lastMessage.content === 'string' 
+      ? lastMessage.content 
+      : lastMessage.content.find((p: any) => p.type === 'text')?.text || "";
+
+    const { text, decision } = await orchestrator.processRequest(
+      userInput,
+      imageParts,
+      history,
+      memory || {
+        symptoms: [],
+        medications: [],
+        diagnoses: [],
+        allergies: [],
+        riskFactors: [],
+        uploadedDocuments: [],
+        extractedFacts: []
+      },
+      lastAnalysis || null
+    );
+
+    // If it's a full analysis, we might want to return the structured JSON
+    // The orchestrator currently returns raw text from the model
+    res.status(200).json({ text, decision });
   } catch (error: any) {
     console.error('Chat error:', error);
     res.status(500).json({ 
-      error: 'Ошибка при обработке запроса. Пожалуйста, проверьте API ключ и попробуйте снова.',
+      error: 'Ошибка при обработке запроса.',
       details: error.message 
     });
   }

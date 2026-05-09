@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'motion/react';
 import { Message } from '../types';
 import { MedicalAnalysis } from './MedicalAnalysis';
+import { AnalysisSnapshotView } from './AnalysisSnapshot';
 import { formatTime } from '../lib/utils';
 import { User, Bot, Loader2, Mic } from 'lucide-react';
 import { useChatStore } from '../store/useChatStore';
@@ -24,6 +25,7 @@ const Dots = () => {
 export const MessageList = ({ messages, isLoading }: { messages: Message[], isLoading: boolean }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const status = useChatStore(state => state.status);
+  const lastAnalysis = useChatStore(state => state.lastAnalysis);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -31,7 +33,9 @@ export const MessageList = ({ messages, isLoading }: { messages: Message[], isLo
 
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-8 scrollbar-hide">
-      {messages.length === 0 && (
+      {lastAnalysis && <AnalysisSnapshotView snapshot={lastAnalysis} />}
+      
+      {messages.length === 0 && !lastAnalysis && (
         <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-50">
           <div className="w-16 h-16 bg-teal-50 rounded-full flex items-center justify-center text-teal-600">
             <Bot size={32} />

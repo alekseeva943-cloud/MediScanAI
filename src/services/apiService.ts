@@ -2,13 +2,14 @@ import { Message, AIResponse } from '../types';
 import { MEDICAL_SYSTEM_PROMPT } from './medicalPrompt';
 
 export const apiService = {
-  async chat(messages: { role: string; content: any }[]): Promise<AIResponse> {
+  async chat(messages: { role: string; content: any }[], memory?: any, lastAnalysis?: any): Promise<{ text: string; decision: any }> {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages,
-        systemPrompt: MEDICAL_SYSTEM_PROMPT,
+        memory,
+        lastAnalysis
       }),
     });
 

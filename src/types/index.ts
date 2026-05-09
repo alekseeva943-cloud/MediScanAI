@@ -1,3 +1,5 @@
+import { MedicalMemory, AnalysisSnapshot } from '../ai/types';
+
 export type DangerLevel = 'low' | 'medium' | 'high';
 
 export interface AIResponse {
@@ -24,12 +26,16 @@ export interface Message {
 
 export interface ChatState {
   messages: Message[];
+  medicalMemory: MedicalMemory;
+  lastAnalysis: AnalysisSnapshot | null;
   isLoading: boolean;
   status: string | null;
   error: string | null;
   addMessage: (message: Message) => void;
   updateMessage: (id: string, updates: Partial<Message>) => void;
   setLoading: (loading: boolean, status?: string | null) => void;
+  setMedicalMemory: (memory: Partial<MedicalMemory>) => void;
+  setLastAnalysis: (analysis: AnalysisSnapshot | null) => void;
   setError: (error: string | null) => void;
   clearHistory: () => void;
 }

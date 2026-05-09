@@ -83,11 +83,60 @@ export default function App() {
         setLoading(true, 'Подготовка ответа');
       }
 
-      const aiData = await apiService.chat(history);
+      const medicalMemory = useChatStore.getState().medicalMemory;
+      const lastAnalysis = useChatStore.getState().lastAnalysis;
+
+      const { text: aiText, decision } = await apiService.chat(history, medicalMemory, lastAnalysis);
       
       if (useChatStore.getState().messages.length === 0) return; // Exit if cleared
       
       setLoading(true, 'Завершение');
+
+      let aiData: AIResponse;
+      
+      if (decision.mode === 'FULL_MEDICAL_ANALYSIS') {
+        try {
+          const parsed = JSON.parse(aiText.replace(/```json|```/g, ""));
+          aiData = {
+            summary: parsed.summary,
+            possible_risks: parsed.risks,
+            recommendations: parsed.recommendations,
+            danger_level: parsed.danger_level,
+            suggested_actions: parsed.suggested_actions,
+            medical_warning: "Это предварительный анализ ИИ. Обратитесь к врачу.",
+            is_analysis_needed: false
+          };
+          
+          useChatStore.getState().setLastAnalysis({
+            timestamp: Date.now(),
+            summary: parsed.summary,
+            probableDiagnoses: parsed.probableDiagnoses,
+            risks: parsed.risks,
+            medications: parsed.medications,
+            recommendations: parsed.recommendations
+          });
+        } catch (e) {
+          aiData = {
+            summary: aiText,
+            possible_risks: [],
+            recommendations: [],
+            danger_level: 'low',
+            suggested_actions: [],
+            medical_warning: "Ошибка разбора анализа.",
+            is_analysis_needed: true
+          };
+        }
+      } else {
+        aiData = {
+          summary: aiText,
+          possible_risks: [],
+          recommendations: [],
+          danger_level: decision.emergencyLevel,
+          suggested_actions: decision.clarificationQuestions || [],
+          medical_warning: decision.emergencyLevel === 'high' ? "НЕМЕДЛЕННО ОБРАТИТЕСЬ К ВРАЧУ!" : "Это ИИ ассистент.",
+          is_analysis_needed: decision.needsClarification
+        };
+      }
       
       const assistantMessage: Message = {
         id: nanoid(),
