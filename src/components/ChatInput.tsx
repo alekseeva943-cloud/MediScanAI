@@ -82,12 +82,6 @@ export const ChatInput = ({
   const setLoading =
     useChatStore(state => state.setLoading);
 
-  const interviewState =
-    useChatStore(state => state.interviewState);
-
-  const resetInterview =
-    useChatStore(state => state.resetInterview);
-
   const [text, setText] =
     useState('');
 
@@ -289,16 +283,11 @@ export const ChatInput = ({
     onSend(suggestion);
   };
 
-  const handleSkip = () => {
-
-    onSend('Пропустить');
-  };
-
   return (
 
     <div className="p-4 bg-white border-t border-slate-100 space-y-4">
 
-      {/* INTERVIEW */}
+      {/* SUGGESTIONS */}
 
       <AnimatePresence>
 
@@ -333,30 +322,23 @@ export const ChatInput = ({
               <div className="flex flex-col">
 
                 <span className="text-[11px] uppercase tracking-widest text-slate-400 font-bold">
-                  Медицинское уточнение
+                  Подсказки
                 </span>
 
-                {interviewState.currentQuestion && (
-
-                  <span className="text-sm font-semibold text-slate-700 mt-1">
-                    {interviewState.currentQuestion}
-                  </span>
-                )}
+                <span className="text-sm text-slate-500 mt-1">
+                  Выберите вариант или продолжите сообщение
+                </span>
               </div>
-
-              {interviewState.active && (
-
-                <span className="text-xs text-slate-400">
-                  Шаг {interviewState.currentStep}
-                </span>
-              )}
             </div>
 
-            {/* QUICK REPLIES */}
+            {/* BUTTONS */}
 
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
 
-              {suggestions.map((s, i) => (
+              {suggestions
+                .filter(Boolean)
+                .slice(0, 6)
+                .map((s, i) => (
 
                 <Button
 
@@ -364,7 +346,7 @@ export const ChatInput = ({
 
                   variant="secondary"
 
-                  className="whitespace-nowrap rounded-full py-1.5 px-4 h-auto text-xs"
+                  className="whitespace-nowrap rounded-full py-1.5 px-4 h-auto text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700"
 
                   onClick={() =>
                     handleSuggestionClick(s)
@@ -373,19 +355,6 @@ export const ChatInput = ({
                   {s}
                 </Button>
               ))}
-
-              {/* SKIP */}
-
-              <Button
-
-                variant="ghost"
-
-                className="whitespace-nowrap rounded-full py-1.5 px-4 h-auto text-xs border border-slate-200"
-
-                onClick={handleSkip}
-              >
-                Пропустить
-              </Button>
             </div>
 
           </motion.div>
@@ -532,7 +501,7 @@ export const ChatInput = ({
             placeholder={
               isRecording
                 ? "Слушаю вас..."
-                : "Опишите симптомы..."
+                : "Опишите симптомы или задайте вопрос..."
             }
 
             disabled={
