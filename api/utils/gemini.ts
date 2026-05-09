@@ -1,5 +1,5 @@
 // api/utils/gemini.ts
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
-const apiKey = process.env.GEMINI_API_KEY || "";
-export const genAI = new GoogleGenerativeAI(apiKey);
+const apiKey = process.env.OPENAI_API_KEY || "";
+export const openai = new OpenAI({ apiKey });

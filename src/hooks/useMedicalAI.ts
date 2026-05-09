@@ -20,7 +20,7 @@ export const useMedicalAI = () => {
   } = useChatStore();
 
   const processResponse = useCallback(async (text: string, image?: string) => {
-    const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY || ''; // Fallback or handle correctly
+    const apiKey = (import.meta as any).env.VITE_OPENAI_API_KEY || ''; // Fallback or handle correctly
     const orchestrator = new MedicalOrchestrator(apiKey);
 
     const imageParts: any[] = [];
