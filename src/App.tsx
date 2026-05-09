@@ -4,7 +4,7 @@ import { MessageList } from './components/MessageList';
 import { ChatInput } from './components/ChatInput';
 import { apiService } from './services/apiService';
 import { nanoid } from 'nanoid';
-import { Message } from './types';
+import { AIResponse, Message } from './types';
 import { Bot, Trash2, ShieldAlert } from 'lucide-react';
 import { Button } from './components/UI';
 import { AnimatePresence, motion } from 'motion/react';

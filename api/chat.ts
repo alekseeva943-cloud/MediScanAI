@@ -1,4 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 // ESM: keep explicit .js extension for Vercel serverless runtime resolution.
 import { MedicalOrchestrator } from '../src/ai/orchestration/medicalOrchestrator.js';
 

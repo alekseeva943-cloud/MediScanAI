@@ -5,11 +5,11 @@ import { MedicalRouter } from "../router/medicalRouter.js";
 import { SYSTEM_PROMPT } from "../prompts/systemPrompt.js";
 import { ANALYSIS_PROMPT } from "../prompts/analysisPrompt.js";
 import { UPDATE_ANALYSIS_PROMPT } from "../prompts/updateAnalysisPrompt.js";
-import { 
-  ResponseMode, 
-  MedicalMemory, 
-  AnalysisSnapshot, 
-  RouterDecision 
+import { ResponseMode } from "../types/index.js";
+import type {
+  MedicalMemory,
+  AnalysisSnapshot,
+  RouterDecision
 } from "../types/index.js";
 
 export class MedicalOrchestrator {

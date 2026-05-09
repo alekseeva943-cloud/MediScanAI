@@ -1,4 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { openai } from './utils/openai.js';
 import formidable from 'formidable';
 import fs from 'fs';
