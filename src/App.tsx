@@ -51,7 +51,11 @@ export default function App() {
 
     setLastAnalysis,
 
-    resetInterview
+    resetInterview,
+
+    interviewState,
+
+    setInterviewState
 
   } = useChatStore();
 
@@ -69,134 +73,88 @@ export default function App() {
   }, [messages]);
 
   // -------------------------
-  // SMART QUICK REPLIES
+  // CLARIFICATION FLOW
   // -------------------------
 
-  const buildQuickReplies = (
-    text: string
-  ): string[] => {
+  const clarificationFlow = [
 
-    const lower =
-      text.toLowerCase();
-
-    // WHEN STARTED
-
-    if (
-      lower.includes('когда') ||
-      lower.includes('началась')
-    ) {
-
-      return [
+    {
+      id: 'pain_start',
+      question: 'Когда началась боль?',
+      replies: [
         'Сегодня',
         'Вчера',
         'Несколько дней',
         'После тренировки',
         'Давно',
         'Пропустить'
-      ];
-    }
+      ]
+    },
 
-    // PAIN TYPE
-
-    if (
-      lower.includes('острая') ||
-      lower.includes('тянущая') ||
-      lower.includes('боль')
-    ) {
-
-      return [
+    {
+      id: 'pain_type',
+      question: 'Какая это боль?',
+      replies: [
         'Острая',
         'Ноющая',
         'Тянущая',
         'Пульсирующая',
         'Только при движении',
         'Пропустить'
-      ];
-    }
+      ]
+    },
 
-    // PAIN SCALE
-
-    if (
-      lower.includes('шкале') ||
-      lower.includes('1 до 10')
-    ) {
-
-      return [
+    {
+      id: 'pain_scale',
+      question: 'Насколько сильная боль?',
+      replies: [
         '1-3',
         '4-6',
         '7-8',
         '9-10',
         'Трудно оценить',
         'Пропустить'
-      ];
-    }
+      ]
+    },
 
-    // SWELLING
-
-    if (
-      lower.includes('отек')
-    ) {
-
-      return [
+    {
+      id: 'swelling',
+      question: 'Есть ли отек?',
+      replies: [
         'Да',
         'Нет',
         'Немного',
-        'Сильный отек',
+        'Сильный',
         'Не уверен',
         'Пропустить'
-      ];
-    }
+      ]
+    },
 
-    // TEMPERATURE
-
-    if (
-      lower.includes('температур')
-    ) {
-
-      return [
+    {
+      id: 'injury',
+      question: 'Была ли травма?',
+      replies: [
+        'Да',
         'Нет',
-        '37-38',
-        '38+',
-        'Озноб',
-        'Не измерял',
+        'После спорта',
+        'После падения',
+        'После нагрузки',
         'Пропустить'
-      ];
+      ]
     }
-
-    // DEFAULT
-
-    return [
-      'Подробнее',
-      'Загрузить фото',
-      'Есть анализы',
-      'Есть лекарства',
-      'Уточнить симптомы',
-      'Пропустить'
-    ];
-  };
+  ];
 
   // -------------------------
-  // EXTRACT SINGLE QUESTION
+  // NEXT QUESTION
   // -------------------------
 
-  const extractSingleQuestion = (
-    text: string
-  ): string => {
+  const getNextQuestion = () => {
 
-    const lines = text
-      .split('\n')
-      .map(l => l.trim())
-      .filter(Boolean);
+    const asked =
+      interviewState?.askedQuestions || [];
 
-    const question =
-      lines.find(
-        l =>
-          l.includes('?')
-      );
-
-    return (
-      question ||
-      text
+    return clarificationFlow.find(
+      q => !asked.includes(q.id)
     );
   };
 
@@ -484,10 +442,16 @@ export default function App() {
       }
 
       // -------------------------
-      // RESET INTERVIEW
+      // RESET FLOW
       // -------------------------
 
-      resetInterview();
+      if (
+        decision.mode !==
+        'CLARIFICATION_MODE'
+      ) {
+
+        resetInterview();
+      }
 
       // -------------------------
       // SAFETY
@@ -521,36 +485,107 @@ export default function App() {
         'CLARIFICATION_MODE'
       ) {
 
-        const singleQuestion =
-          extractSingleQuestion(aiText);
+        const nextQuestion =
+          getNextQuestion();
 
-        aiData = {
+        if (!nextQuestion) {
 
-          summary:
-            singleQuestion,
+          resetInterview();
 
-          possible_risks: [],
+          aiData = {
 
-          recommendations: [],
+            summary:
+              'Спасибо. Информации достаточно для предварительной оценки.',
 
-          danger_level:
-            decision.emergencyLevel,
+            possible_risks: [],
 
-          suggested_actions: [],
+            recommendations: [],
 
-          quick_replies:
-            buildQuickReplies(
-              singleQuestion
-            ),
+            danger_level:
+              decision.emergencyLevel,
 
-          medical_warning: "",
+            suggested_actions: [],
 
-          render_mode:
-            decision.mode,
+            quick_replies: [],
 
-          router_decision:
-            decision
-        };
+            medical_warning: "",
+
+            render_mode:
+              'PRELIMINARY_ANALYSIS',
+
+            router_decision:
+              decision
+          };
+
+        } else {
+
+          setInterviewState({
+
+            active: true,
+
+            currentQuestion:
+              nextQuestion.question,
+
+            currentStep:
+              interviewState.currentStep + 1,
+
+            totalSteps:
+              clarificationFlow.length,
+
+            askedQuestions: [
+              nextQuestion.id
+            ],
+
+            skippedQuestions:
+
+              text === 'Пропустить'
+
+                ? [
+                    interviewState.currentQuestion
+                  ]
+
+                : [],
+
+            collectedAnswers:
+
+              text !== 'Пропустить'
+
+                ? [{
+                    question:
+                      interviewState.currentQuestion,
+
+                    answer: text
+                  }]
+
+                : []
+          });
+
+          aiData = {
+
+            summary:
+              nextQuestion.question,
+
+            possible_risks: [],
+
+            recommendations: [],
+
+            danger_level:
+              decision.emergencyLevel,
+
+            suggested_actions: [],
+
+            quick_replies:
+              nextQuestion.replies,
+
+            medical_warning: "",
+
+            render_mode:
+              decision.mode,
+
+            router_decision:
+              decision
+          };
+        }
 
       } else if (
 
@@ -712,7 +747,11 @@ export default function App() {
 
     setLastAnalysis,
 
-    resetInterview
+    resetInterview,
+
+    interviewState,
+
+    setInterviewState
   ]);
 
   return (

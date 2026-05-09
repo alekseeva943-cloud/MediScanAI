@@ -55,13 +55,19 @@ export const useChatStore = create<ChatState>()(
 
         active: false,
 
-        currentStep: 1,
+        currentStep: 0,
 
-        totalSteps: 1,
+        totalSteps: 0,
 
         currentQuestion: '',
 
-        collectedAnswers: []
+        collectedAnswers: [],
+
+        skippedQuestions: [],
+
+        askedQuestions: [],
+
+        symptomContext: null
       },
 
       // -------------------------
@@ -81,10 +87,11 @@ export const useChatStore = create<ChatState>()(
       addMessage: (message) =>
 
         set((state) => ({
+
           messages: [
             ...state.messages,
             message
-          ]
+          ].slice(-40)
         })),
 
       updateMessage: (id, updates) =>
@@ -149,15 +156,48 @@ export const useChatStore = create<ChatState>()(
 
       setInterviewState: (updates) =>
 
-        set((state) => ({
+        set((state) => {
 
-          interviewState: {
+          const current =
+            state.interviewState;
 
-            ...state.interviewState,
+          return {
 
-            ...updates
-          }
-        })),
+            interviewState: {
+
+              ...current,
+
+              ...updates,
+
+              askedQuestions: [
+
+                ...new Set([
+
+                  ...(current.askedQuestions || []),
+
+                  ...(updates.askedQuestions || [])
+                ])
+              ],
+
+              skippedQuestions: [
+
+                ...new Set([
+
+                  ...(current.skippedQuestions || []),
+
+                  ...(updates.skippedQuestions || [])
+                ])
+              ],
+
+              collectedAnswers: [
+
+                ...(current.collectedAnswers || []),
+
+                ...(updates.collectedAnswers || [])
+              ]
+            }
+          };
+        }),
 
       resetInterview: () =>
 
@@ -167,13 +207,19 @@ export const useChatStore = create<ChatState>()(
 
             active: false,
 
-            currentStep: 1,
+            currentStep: 0,
 
-            totalSteps: 1,
+            totalSteps: 0,
 
             currentQuestion: '',
 
-            collectedAnswers: []
+            collectedAnswers: [],
+
+            skippedQuestions: [],
+
+            askedQuestions: [],
+
+            symptomContext: null
           }
         }),
 
@@ -220,13 +266,19 @@ export const useChatStore = create<ChatState>()(
 
             active: false,
 
-            currentStep: 1,
+            currentStep: 0,
 
-            totalSteps: 1,
+            totalSteps: 0,
 
             currentQuestion: '',
 
-            collectedAnswers: []
+            collectedAnswers: [],
+
+            skippedQuestions: [],
+
+            askedQuestions: [],
+
+            symptomContext: null
           },
 
           isLoading: false,
