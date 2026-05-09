@@ -5,7 +5,38 @@ export class OpenAIProvider {
 
   constructor(apiKey?: string) {
     const key = apiKey || process.env.OPENAI_API_KEY || "";
-    this.client = new OpenAI({ apiKey: key });
+
+    this.client = new OpenAI({
+      apiKey: key
+    });
+  }
+
+  private normalizeText(value: any): string {
+    if (typeof value === "string") {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => {
+          if (typeof item === "string") {
+            return item;
+          }
+
+          if (typeof item === "object" && item?.text) {
+            return item.text;
+          }
+
+          return JSON.stringify(item);
+        })
+        .join("\n");
+    }
+
+    if (typeof value === "object" && value?.text) {
+      return value.text;
+    }
+
+    return String(value || "");
   }
 
   async generateText(params: {
@@ -15,21 +46,43 @@ export class OpenAIProvider {
     userInput: string;
     imageParts?: any[];
   }): Promise<string> {
-    const { model, systemInstruction, history, userInput, imageParts = [] } = params;
+    const {
+      model,
+      systemInstruction,
+      history,
+      userInput,
+      imageParts = []
+    } = params;
 
     const input: any[] = [
       {
         role: "system",
-        content: [{ type: "input_text", text: systemInstruction }]
+        content: [
+          {
+            type: "input_text",
+            text: this.normalizeText(systemInstruction)
+          }
+        ]
       },
+
       ...history.map((m) => ({
         role: m.role === "user" ? "user" : "assistant",
-        content: [{ type: "input_text", text: m.content }]
+        content: [
+          {
+            type: "input_text",
+            text: this.normalizeText(m.content)
+          }
+        ]
       })),
+
       {
         role: "user",
         content: [
-          { type: "input_text", text: userInput },
+          {
+            type: "input_text",
+            text: this.normalizeText(userInput)
+          },
+
           ...imageParts
             .map((p) => p?.inlineData)
             .filter(Boolean)
@@ -41,17 +94,28 @@ export class OpenAIProvider {
       }
     ];
 
-    const response = await this.client.responses.create({ model, input });
+    const response = await this.client.responses.create({
+      model,
+      input
+    });
+
     return response.output_text || "";
   }
 
   async generateRouterDecision(prompt: string): Promise<string> {
     const response = await this.client.responses.create({
       model: "gpt-4o-mini",
+
       input: [
         {
           role: "user",
-          content: [{ type: "input_text", text: prompt }]
+
+          content: [
+            {
+              type: "input_text",
+              text: this.normalizeText(prompt)
+            }
+          ]
         }
       ]
     });
