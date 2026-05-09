@@ -1,6 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-// ESM: keep explicit .js extension for Vercel serverless runtime resolution.
-import { MedicalOrchestrator } from '../src/ai/orchestration/medicalOrchestrator.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -9,6 +7,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { messages, memory, lastAnalysis } = req.body;
+    const { MedicalOrchestrator } = await import('../src/ai/orchestration/medicalOrchestrator.js');
     const orchestrator = new MedicalOrchestrator();
 
     // The frontend should pass the last message separately or we take the last one
