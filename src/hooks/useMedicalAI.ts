@@ -1,10 +1,10 @@
 // src/hooks/useMedicalAI.ts
 import { useCallback } from 'react';
 import { useChatStore } from '../store/useChatStore';
-import { MedicalOrchestrator } from '../ai/orchestration/medicalOrchestrator';
+import { MedicalOrchestrator } from '../ai/orchestration/medicalOrchestrator.js';
 import { Message, AIResponse } from '../types';
 import { nanoid } from 'nanoid';
-import { ResponseMode } from '../ai/types';
+import { ResponseMode } from '../ai/types/index.js';
 
 export const useMedicalAI = () => {
   const { 
