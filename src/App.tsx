@@ -69,12 +69,11 @@ export default function App() {
 
     setLastAnalysis,
 
-    medicalCase,
+    activeCase,
 
-    updateMedicalCase,
+    updateActiveCase,
 
-    resetMedicalCase
-
+    resetActiveCase
   } = useChatStore();
 
   // -----------------------------------
@@ -163,16 +162,16 @@ export default function App() {
           image
 
             ? [{
-                type: 'image',
-                url: image
-              }]
+              type: 'image',
+              url: image
+            }]
 
             : audioBlob
 
               ? [{
-                  type: 'voice',
-                  url: 'voice.webm'
-                }]
+                type: 'voice',
+                url: 'voice.webm'
+              }]
 
               : undefined
       };
@@ -233,11 +232,11 @@ export default function App() {
           finalContent.toLowerCase();
 
         const updatedSymptoms = [
-          ...(medicalCase?.symptoms || [])
+          ...(activeCase?.symptoms || [])
         ];
 
         const updatedTriggers = [
-          ...(medicalCase?.detectedTriggers || [])
+          ...(activeCase?.detectedTriggers || [])
         ];
 
         // -----------------------------------
@@ -312,7 +311,7 @@ export default function App() {
         // UPDATE CASE
         // -----------------------------------
 
-        updateMedicalCase({
+        updateActiveCase({
 
           symptoms:
             updatedSymptoms,
@@ -322,7 +321,7 @@ export default function App() {
 
           clarificationCount:
             (
-              medicalCase
+              activeCase
                 ?.clarificationCount || 0
             ) + 1
         });
@@ -399,7 +398,7 @@ export default function App() {
           medical_case: {
 
             probable_cause:
-              medicalCase
+              activeCase
                 ?.probableCause || '',
 
             symptoms:
@@ -411,23 +410,23 @@ export default function App() {
             clarification_count:
 
               (
-                medicalCase
+                activeCase
                   ?.clarificationCount || 0
               ) + 1,
 
             excluded_conditions:
 
-              medicalCase
+              activeCase
                 ?.excludedConditions || [],
 
             possible_conditions:
 
-              medicalCase
+              activeCase
                 ?.possibleConditions || [],
 
             follow_up_questions:
 
-              medicalCase
+              activeCase
                 ?.followUpQuestions || []
           },
 
@@ -455,11 +454,11 @@ export default function App() {
         // STORE DATA
         // -----------------------------------
 
-        const medicalMemory =
+        const patientProfile =
 
           useChatStore
             .getState()
-            .medicalMemory;
+            .patientProfile;
 
         const lastAnalysis =
 
@@ -475,22 +474,18 @@ export default function App() {
           await apiService.chat(
 
             [
-
               ...history,
-
               {
-
-                role:
-                  'system',
-
-                content:
-                  JSON.stringify(
-                    medicalContext
-                  )
+                role: 'system',
+                content: JSON.stringify(
+                  medicalContext
+                )
               }
             ],
 
-            medicalMemory,
+            patientProfile,
+
+            activeCase,
 
             lastAnalysis
           );
@@ -515,7 +510,7 @@ export default function App() {
         // UPDATE MEDICAL CASE
         // -----------------------------------
 
-        updateMedicalCase({
+        updateActiveCase({
 
           probableCause:
 
@@ -523,7 +518,7 @@ export default function App() {
 
             ||
 
-            medicalCase
+            activeCase
               ?.probableCause
 
             ||
@@ -545,8 +540,8 @@ export default function App() {
 
               ? [decision.question]
 
-              : medicalCase
-                  ?.followUpQuestions || []
+              : activeCase
+                ?.followUpQuestions || []
         });
 
         // -----------------------------------
@@ -694,7 +689,7 @@ export default function App() {
 
       messages,
 
-      medicalCase,
+      activeCase,
 
       addMessage,
 
@@ -708,7 +703,7 @@ export default function App() {
 
       setLastAnalysis,
 
-      updateMedicalCase
+      updateActiveCase
     ]);
 
   // -----------------------------------
@@ -824,7 +819,7 @@ export default function App() {
 
               clearHistory();
 
-              resetMedicalCase();
+              resetActiveCase();
             }}
           >
 

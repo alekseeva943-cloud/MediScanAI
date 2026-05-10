@@ -1,8 +1,7 @@
+
 // src/services/apiService.ts
 
 import type {
-
-  Message,
 
   MedicalCase,
 
@@ -57,16 +56,8 @@ export const apiService = {
 
   ): Promise<ChatApiResponse> {
 
-    // -----------------------------------------------------
-    // REDUCE HISTORY
-    // -----------------------------------------------------
-
     const reducedMessages =
       messages.slice(-4);
-
-    // -----------------------------------------------------
-    // REQUEST
-    // -----------------------------------------------------
 
     const response =
       await fetch('/api/chat', {
@@ -193,3 +184,4 @@ export const apiService = {
     return data.text;
   }
 };
+
