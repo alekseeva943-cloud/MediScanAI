@@ -133,15 +133,10 @@ export default async function handler(
     // -----------------------------------------------------
 
     const {
-
       messages,
-
       patientProfile,
-
       activeCase,
-
       lastAnalysis
-
     } = req.body;
 
     // -----------------------------------------------------
@@ -168,7 +163,7 @@ export default async function handler(
 
     const lastMessage =
       safeMessages[
-        safeMessages.length - 1
+      safeMessages.length - 1
       ];
 
     if (!lastMessage) {
@@ -272,13 +267,11 @@ export default async function handler(
         .slice(-4)
         .map((m: any) =>
 
-          `${m.role}: ${
+          `${m.role}: ${typeof m.content === 'string'
 
-            typeof m.content === 'string'
+            ? m.content
 
-              ? m.content
-
-              : JSON.stringify(m.content)
+            : JSON.stringify(m.content)
           }`
         )
         .join('\n');
