@@ -1,13 +1,19 @@
 // api/chat.ts
 
 import type {
+
   VercelRequest,
+
   VercelResponse
+
 } from '@vercel/node';
 
 import type {
+
   MedicalCase,
+
   PatientProfile
+
 } from '../src/types';
 
 // -----------------------------------------------------
@@ -22,6 +28,10 @@ function safeArray(
     ? value
     : [];
 }
+
+// -----------------------------------------------------
+// PATIENT SUMMARY
+// -----------------------------------------------------
 
 function buildPatientSummary(
   profile?: PatientProfile | null
@@ -60,6 +70,10 @@ ${safeArray(profile.surgeries).join(', ') || 'Нет данных'}
 ${safeArray(profile.riskFactors).join(', ') || 'Нет данных'}
 `;
 }
+
+// -----------------------------------------------------
+// CASE SUMMARY
+// -----------------------------------------------------
 
 function buildCaseSummary(
   medicalCase?: MedicalCase | null
@@ -107,8 +121,11 @@ ${medicalCase.aiSummary || 'Нет'}
 // -----------------------------------------------------
 
 export default async function handler(
+
   req: VercelRequest,
+
   res: VercelResponse
+
 ) {
 
   if (req.method !== 'POST') {
@@ -127,24 +144,16 @@ export default async function handler(
     // -----------------------------------------------------
 
     const {
+
       messages,
+
       patientProfile,
+
       activeCase,
+
       lastAnalysis
+
     } = req.body;
-
-    // -----------------------------------------------------
-    // ORCHESTRATOR
-    // -----------------------------------------------------
-
-    const {
-      MedicalOrchestrator
-    } = await import(
-      '../src/ai/orchestration/medicalOrchestrator.js'
-    );
-
-    const orchestrator =
-      new MedicalOrchestrator();
 
     // -----------------------------------------------------
     // SAFE MESSAGES
@@ -243,7 +252,7 @@ export default async function handler(
     }
 
     // -----------------------------------------------------
-    // CONTEXT
+    // MEDICAL CONTEXT
     // -----------------------------------------------------
 
     const patientSummary =
@@ -261,12 +270,11 @@ export default async function handler(
         .slice(-4)
         .map((m: any) =>
 
-          `${m.role}: ${
-            typeof m.content === 'string'
+          `${m.role}: ${typeof m.content === 'string'
 
-              ? m.content
+            ? m.content
 
-              : JSON.stringify(m.content)
+            : JSON.stringify(m.content)
           }`
         )
         .join('\n');
@@ -283,57 +291,52 @@ ${recentConversation}
 `;
 
     // -----------------------------------------------------
-    // LEGACY MEMORY ADAPTER
+    // ORCHESTRATOR
     // -----------------------------------------------------
 
-    const legacyMemory = {
+    const {
+      MedicalOrchestrator
+    } = await import(
+      '../src/ai/orchestration/medicalOrchestrator.js'
+    );
+
+    const orchestrator =
+      new MedicalOrchestrator();
+
+    // -----------------------------------------------------
+    // MEMORY
+    // -----------------------------------------------------
+
+    const safeMemory = {
 
       symptoms:
-        safeArray(
-          activeCase?.symptoms
-        ),
+        safeArray(activeCase?.symptoms),
 
       medications:
-        safeArray(
-          patientProfile?.medications
-        ),
+        safeArray(patientProfile?.medications),
 
       diagnoses:
-        safeArray(
-          activeCase?.possibleConditions
-        ),
+        safeArray(activeCase?.possibleConditions),
 
       allergies:
-        safeArray(
-          patientProfile?.allergies
-        ),
+        safeArray(patientProfile?.allergies),
 
       riskFactors:
-        safeArray(
-          patientProfile?.riskFactors
-        ),
+        safeArray(patientProfile?.riskFactors),
 
-      uploadedDocuments:
-        safeArray(
-          activeCase?.uploadedDocuments
-        ),
+      uploadedDocuments: [],
 
-      extractedFacts: [],
+      extractedFacts:
+        safeArray(activeCase?.timeline),
 
       chronicConditions:
-        safeArray(
-          patientProfile?.chronicConditions
-        ),
+        safeArray(patientProfile?.chronicConditions),
 
       surgeries:
-        safeArray(
-          patientProfile?.surgeries
-        ),
+        safeArray(patientProfile?.surgeries),
 
       familyHistory:
-        safeArray(
-          patientProfile?.familyHistory
-        ),
+        safeArray(patientProfile?.familyHistory),
 
       age:
         patientProfile?.age || '',
@@ -343,7 +346,7 @@ ${recentConversation}
     };
 
     // -----------------------------------------------------
-    // AI PROCESSING
+    // PROCESS AI
     // -----------------------------------------------------
 
     const result =
@@ -360,10 +363,81 @@ ${recentConversation}
           }
         ],
 
-        legacyMemory,
+        safeMemory,
 
         lastAnalysis || null
       );
+
+    // -----------------------------------------------------
+    // SAFE JSON PARSE
+    // -----------------------------------------------------
+
+    let parsedResponse: any = null;
+
+    try {
+
+      if (
+
+        typeof result?.text === 'string'
+
+        &&
+
+        result.text
+          .trim()
+          .startsWith('{')
+
+      ) {
+
+        parsedResponse =
+          JSON.parse(
+            result.text
+          );
+      }
+
+    } catch (err) {
+
+      console.error(
+        'JSON parse failed:',
+        err
+      );
+    }
+
+    // -----------------------------------------------------
+    // FINAL TEXT
+    // -----------------------------------------------------
+
+    const finalText =
+
+      parsedResponse?.text
+
+      ||
+
+      parsedResponse?.summary
+
+      ||
+
+      result?.text
+
+      ||
+
+      'Не удалось сформировать ответ';
+
+    // -----------------------------------------------------
+    // QUICK REPLIES
+    // -----------------------------------------------------
+
+    const finalQuickReplies =
+
+      Array.isArray(
+        parsedResponse?.quick_replies
+      )
+
+        ? parsedResponse.quick_replies
+
+        : (
+
+          result?.quickReplies || []
+        );
 
     // -----------------------------------------------------
     // RESPONSE
@@ -372,13 +446,13 @@ ${recentConversation}
     return res.status(200).json({
 
       text:
-        result?.text || '',
+        finalText,
 
       decision:
         result?.decision || {},
 
       quickReplies:
-        result?.quickReplies || [],
+        finalQuickReplies,
 
       updatedMemory:
         result?.updatedMemory || null,
