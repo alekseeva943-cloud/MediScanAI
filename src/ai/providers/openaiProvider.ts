@@ -80,8 +80,8 @@ export class OpenAIProvider {
   async generateText(params: {
 
     model:
-      | "gpt-4o-mini"
-      | "gpt-4.1-mini";
+    | "gpt-4o-mini"
+    | "gpt-4.1-mini";
 
     systemInstruction: string;
 
@@ -177,7 +177,7 @@ export class OpenAIProvider {
   }
 
   // -----------------------------------
-  // ROUTER DECISION
+  // ROUTER / EXTRACTION
   // -----------------------------------
 
   async generateRouterDecision(
@@ -187,15 +187,42 @@ export class OpenAIProvider {
     const response =
       await this.client.responses.create({
 
-        model: "gpt-4o-mini",
+        model: "gpt-4.1-mini",
 
-        input: prompt,
+        temperature: 0.1,
 
-        temperature: 0.2
+        input: [
+
+          {
+            role: "system",
+
+            content: [
+
+              {
+                type: "input_text",
+
+                text:
+                  "Return ONLY valid JSON."
+              }
+            ]
+          },
+
+          {
+            role: "user",
+
+            content: [
+
+              {
+                type: "input_text",
+
+                text: prompt
+              }
+            ]
+          }
+        ]
       });
 
     return (
       response.output_text || ""
     );
-  }
-}
+  }}
