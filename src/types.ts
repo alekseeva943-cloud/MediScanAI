@@ -7,12 +7,12 @@
 export interface Attachment {
 
   type:
-    | 'image'
-    | 'voice'
-    | 'file'
-    | 'mri'
-    | 'analysis'
-    | 'document';
+  | 'image'
+  | 'voice'
+  | 'file'
+  | 'mri'
+  | 'analysis'
+  | 'document';
 
   url: string;
 
@@ -30,21 +30,21 @@ export interface RouterDecision {
   intent?: string;
 
   mode?:
-    | 'CASUAL_CONVERSATION'
-    | 'CLARIFICATION_MODE'
-    | 'FULL_MEDICAL_ANALYSIS'
-    | 'ANALYSIS_UPDATE_MODE'
-    | 'EMERGENCY_WARNING_MODE'
-    | 'REPORT_MODE';
+  | 'CASUAL_CONVERSATION'
+  | 'CLARIFICATION_MODE'
+  | 'FULL_MEDICAL_ANALYSIS'
+  | 'ANALYSIS_UPDATE_MODE'
+  | 'EMERGENCY_WARNING_MODE'
+  | 'REPORT_MODE';
 
   needsClarification?: boolean;
 
   clarificationQuestions?: string[];
 
   emergencyLevel?:
-    | 'low'
-    | 'medium'
-    | 'high';
+  | 'low'
+  | 'medium'
+  | 'high';
 
   isUpdateToExisting?: boolean;
 
@@ -70,9 +70,9 @@ export interface AIResponse {
   recommendations: string[];
 
   danger_level:
-    | 'low'
-    | 'medium'
-    | 'high';
+  | 'low'
+  | 'medium'
+  | 'high';
 
   suggested_actions: string[];
 
@@ -98,9 +98,9 @@ export interface Message {
   id: string;
 
   role:
-    | 'user'
-    | 'assistant'
-    | 'system';
+  | 'user'
+  | 'assistant'
+  | 'system';
 
   content: string;
 
@@ -128,9 +128,9 @@ export interface PatientProfile {
   age?: number;
 
   gender?:
-    | 'male'
-    | 'female'
-    | 'other';
+  | 'male'
+  | 'female'
+  | 'other';
 
   height?: number;
 
@@ -164,12 +164,12 @@ export interface MedicalDocument {
   id: string;
 
   type:
-    | 'analysis'
-    | 'mri'
-    | 'xray'
-    | 'photo'
-    | 'prescription'
-    | 'other';
+  | 'analysis'
+  | 'mri'
+  | 'xray'
+  | 'photo'
+  | 'prescription'
+  | 'other';
 
   title: string;
 
@@ -191,11 +191,11 @@ export interface CaseTimelineEvent {
   id: string;
 
   type:
-    | 'symptom'
-    | 'upload'
-    | 'ai_update'
-    | 'report'
-    | 'user_note';
+  | 'symptom'
+  | 'upload'
+  | 'ai_update'
+  | 'report'
+  | 'user_note';
 
   title: string;
 
@@ -217,21 +217,21 @@ export interface MedicalCase {
   chiefComplaint: string;
 
   status:
-    | 'active'
-    | 'monitoring'
-    | 'resolved';
+  | 'active'
+  | 'monitoring'
+  | 'resolved';
 
   probableCause: string;
 
   confidence:
-    | 'low'
-    | 'medium'
-    | 'high';
+  | 'low'
+  | 'medium'
+  | 'high';
 
   dangerLevel:
-    | 'low'
-    | 'medium'
-    | 'high';
+  | 'low'
+  | 'medium'
+  | 'high';
 
   symptoms: string[];
 
@@ -296,6 +296,8 @@ export interface MedicalMemory {
   surgeries: string[];
 
   familyHistory: string[];
+
+  patientProfile?: PatientProfile;
 }
 
 // -----------------------------------------------------
@@ -313,9 +315,9 @@ export interface AnalysisSnapshot {
   risks?: string[];
 
   emergencyLevel?:
-    | 'low'
-    | 'medium'
-    | 'high';
+  | 'low'
+  | 'medium'
+  | 'high';
 
   createdAt?: number;
 

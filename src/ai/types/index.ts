@@ -160,7 +160,7 @@ export interface MedicalMemory {
   activeCase?: ActiveMedicalCase;
 
   // -----------------------------------
-  // NEW STRUCTURED PROFILE
+  // STRUCTURED PATIENT PROFILE
   // -----------------------------------
 
   patientProfile?: PatientProfile;

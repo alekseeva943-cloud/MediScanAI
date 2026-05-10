@@ -1,25 +1,23 @@
 // src/ai/interview/buildDiagnosticState.ts
 
-// Этот файл отвечает за создание структурированного
-// диагностического состояния для AI.
+// Этот файл собирает
+// структурированное диагностическое состояние.
 //
-// Главная задача:
+// ВАЖНО:
 //
-// Превратить хаотичную medical memory
-// в понятный clinical context.
+// Здесь НЕ должно быть:
+// - медицинской логики
+// - symptom-specific rules
+// - hardcoded conditions
+// - disease reasoning
 //
-// AI должен видеть:
+// Этот модуль только:
+// - собирает profile,
+// - собирает confirmed findings,
+// - собирает missing topics,
+// - передает всё в GPT.
 //
-// - что уже подтверждено,
-// - что уже спрашивали,
-// - чего НЕ хватает,
-// - какие есть red flags,
-// - какая главная жалоба.
-//
-// Это сильно уменьшает:
-// - повторные вопросы,
-// - зацикливание,
-// - useless interview loops.
+// Медицинские решения принимает GPT.
 
 import type {
   MedicalMemory
@@ -39,6 +37,8 @@ export interface DiagnosticState {
 
   confirmedFindings: string[];
 
+  negativeFindings: string[];
+
   alreadyCovered: string[];
 
   missingInformation: string[];
@@ -46,15 +46,17 @@ export interface DiagnosticState {
   redFlags: string[];
 }
 
+// -----------------------------------
+// CONFIRMED FINDINGS
+// -----------------------------------
+
 function buildConfirmedFindings(
   profile: PatientProfile
 ): string[] {
 
   const findings: string[] = [];
 
-  // -----------------------------------
   // MAIN COMPLAINT
-  // -----------------------------------
 
   if (
     profile.mainComplaint
@@ -65,12 +67,16 @@ function buildConfirmedFindings(
     );
   }
 
-  // -----------------------------------
+  // SYMPTOMS
+
+  findings.push(
+    ...(profile.symptoms || [])
+  );
+
   // PAIN
-  // -----------------------------------
 
   if (
-    profile.pain.location
+    profile.pain?.location
   ) {
 
     findings.push(
@@ -79,7 +85,7 @@ function buildConfirmedFindings(
   }
 
   if (
-    profile.pain.character
+    profile.pain?.character
   ) {
 
     findings.push(
@@ -88,7 +94,7 @@ function buildConfirmedFindings(
   }
 
   if (
-    profile.pain.duration
+    profile.pain?.duration
   ) {
 
     findings.push(
@@ -96,12 +102,10 @@ function buildConfirmedFindings(
     );
   }
 
-  // -----------------------------------
   // TRAUMA
-  // -----------------------------------
 
   if (
-    profile.trauma.exists
+    profile.trauma?.exists
   ) {
 
     findings.push(
@@ -110,7 +114,7 @@ function buildConfirmedFindings(
   }
 
   if (
-    profile.trauma.mechanism
+    profile.trauma?.mechanism
   ) {
 
     findings.push(
@@ -118,110 +122,24 @@ function buildConfirmedFindings(
     );
   }
 
-  // -----------------------------------
-  // LIMITATIONS
-  // -----------------------------------
+  // FUNCTIONAL LIMITATIONS
 
   findings.push(
-    ...profile.functionalLimitations
+    ...(profile.functionalLimitations || [])
   );
 
-  // -----------------------------------
-  // SYMPTOMS
-  // -----------------------------------
+  // POSSIBLE TRIGGERS
 
   findings.push(
-    ...profile.symptoms
+    ...(profile.possibleTriggers || [])
   );
 
   return findings;
 }
 
-function buildMissingInformation(
-  profile: PatientProfile
-): string[] {
-
-  const missing: string[] = [];
-
-  // -----------------------------------
-  // PAIN
-  // -----------------------------------
-
-  if (
-    !profile.pain.character
-  ) {
-
-    missing.push(
-      "характер боли"
-    );
-  }
-
-  if (
-    !profile.pain.location
-  ) {
-
-    missing.push(
-      "локализация боли"
-    );
-  }
-
-  // -----------------------------------
-  // TRAUMA
-  // -----------------------------------
-
-  if (
-
-    profile.mainComplaint
-      .includes("боль")
-
-    &&
-
-    !profile.trauma.exists
-
-  ) {
-
-    missing.push(
-      "наличие травмы"
-    );
-  }
-
-  // -----------------------------------
-  // SHOULDER / ARM
-  // -----------------------------------
-
-  const shoulderCase =
-
-    profile.mainComplaint
-      .toLowerCase()
-      .includes("плеч");
-
-  if (shoulderCase) {
-
-    if (
-      !profile.symptoms.includes(
-        "отек"
-      )
-    ) {
-
-      missing.push(
-        "наличие отека"
-      );
-    }
-
-    if (
-      !profile.symptoms.includes(
-        "онемение"
-      )
-    ) {
-
-      missing.push(
-        "наличие онемения"
-      );
-    }
-  }
-
-  return missing;
-}
+// -----------------------------------
+// BUILD DIAGNOSTIC STATE
+// -----------------------------------
 
 export function buildDiagnosticState(
   memory: MedicalMemory,
@@ -229,7 +147,6 @@ export function buildDiagnosticState(
 ): DiagnosticState {
 
   const profile =
-
     memory.patientProfile;
 
   if (!profile) {
@@ -240,6 +157,8 @@ export function buildDiagnosticState(
         "unknown complaint",
 
       confirmedFindings: [],
+
+      negativeFindings: [],
 
       alreadyCovered:
         interviewState.previousQuestions,
@@ -253,22 +172,23 @@ export function buildDiagnosticState(
   return {
 
     primaryComplaint:
-      profile.mainComplaint,
+      profile.mainComplaint || "",
 
     confirmedFindings:
       buildConfirmedFindings(
         profile
       ),
 
+    negativeFindings:
+      profile.negativeFindings || [],
+
     alreadyCovered:
-      profile.resolvedTopics,
+      profile.resolvedTopics || [],
 
     missingInformation:
-      buildMissingInformation(
-        profile
-      ),
+      profile.missingTopics || [],
 
     redFlags:
-      profile.redFlags
+      profile.redFlags || []
   };
 }
