@@ -177,6 +177,66 @@ function normalizeProfile(
     profile.resolvedTopics ??= [];
 
     // -----------------------------------
+    // NORMALIZE SYMPTOMS
+    // -----------------------------------
+
+    profile.symptoms =
+
+        profile.symptoms.map(
+            (item: any) => {
+
+                // уже строка
+                if (
+                    typeof item === "string"
+                ) {
+
+                    return item;
+                }
+
+                // объект симптома
+                if (
+
+                    item
+
+                    &&
+
+                    typeof item === "object"
+
+                ) {
+
+                    // symptom + anatomy
+                    if (
+                        item.symptom
+                        &&
+                        item.anatomy
+                    ) {
+
+                        return `${item.symptom} (${item.anatomy})`;
+                    }
+
+                    // symptom only
+                    if (
+                        item.symptom
+                    ) {
+
+                        return item.symptom;
+                    }
+
+                    // type field
+                    if (
+                        item.type
+                    ) {
+
+                        return item.type;
+                    }
+                }
+
+                // fallback
+                return JSON.stringify(item);
+            }
+        );
+
+    // -----------------------------------
     // RESOLVED TOPICS
     // -----------------------------------
 
@@ -185,6 +245,7 @@ function normalizeProfile(
             profile.resolvedTopics
         );
 
+    
     // -----------------------------------
     // PAIN
     // -----------------------------------
