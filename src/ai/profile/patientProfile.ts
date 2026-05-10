@@ -1,39 +1,42 @@
 // src/ai/profile/patientProfile.ts
 
-// Главный structured clinical profile.
+// Главный clinical profile пациента.
 //
-// Здесь хранятся ТОЛЬКО факты.
+// Это основной state,
+// через который работает AI.
 //
 // ВАЖНО:
 //
-// Никакой interview logic.
-// Никаких AI conclusions.
-// Никаких dynamic assumptions.
+// Profile должен:
 //
-// Только clinical facts.
+// - хранить confirmed findings
+// - хранить negative findings
+// - хранить resolved topics
+// - хранить missing topics
+// - предотвращать циклы interview
 
 export interface PatientProfile {
 
   // -----------------------------------
-  // ОСНОВНАЯ ЖАЛОБА
+  // MAIN COMPLAINT
   // -----------------------------------
 
   mainComplaint: string;
 
   // -----------------------------------
-  // СИМПТОМЫ
+  // SYMPTOMS
   // -----------------------------------
 
   symptoms: string[];
 
   // -----------------------------------
-  // ОТРИЦАТЕЛЬНЫЕ СИМПТОМЫ
+  // NEGATIVE FINDINGS
   // -----------------------------------
 
   negativeFindings: string[];
 
   // -----------------------------------
-  // БОЛЬ
+  // PAIN
   // -----------------------------------
 
   pain: {
@@ -48,7 +51,7 @@ export interface PatientProfile {
   };
 
   // -----------------------------------
-  // ТРАВМА
+  // TRAUMA
   // -----------------------------------
 
   trauma: {
@@ -59,19 +62,19 @@ export interface PatientProfile {
   };
 
   // -----------------------------------
-  // ОГРАНИЧЕНИЯ
+  // FUNCTIONAL LIMITATIONS
   // -----------------------------------
 
   functionalLimitations: string[];
 
   // -----------------------------------
-  // ТРИГГЕРЫ
+  // POSSIBLE TRIGGERS
   // -----------------------------------
 
   possibleTriggers: string[];
 
   // -----------------------------------
-  // ЛЕЧЕНИЕ
+  // TREATMENTS
   // -----------------------------------
 
   treatmentsTried: string[];
@@ -85,10 +88,24 @@ export interface PatientProfile {
   redFlags: string[];
 
   // -----------------------------------
-  // ДОПОЛНИТЕЛЬНЫЕ КЛИНИЧЕСКИЕ ФАКТЫ
+  // RESOLVED TOPICS
   // -----------------------------------
 
-  additionalFindings: string[];
+  resolvedTopics: string[];
+
+  // -----------------------------------
+  // MISSING TOPICS
+  // -----------------------------------
+
+  missingTopics: string[];
+
+  // -----------------------------------
+  // LIKELY SCENARIOS
+  // -----------------------------------
+
+  likelyScenarios: string[];
+
+  excludedScenarios: string[];
 }
 
 // -----------------------------------
@@ -132,5 +149,11 @@ export const EMPTY_PATIENT_PROFILE:
 
     redFlags: [],
 
-    additionalFindings: []
+    resolvedTopics: [],
+
+    missingTopics: [],
+
+    likelyScenarios: [],
+
+    excludedScenarios: []
   };
