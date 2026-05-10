@@ -485,11 +485,11 @@ export const ChatInput = ({
                 <div className="flex flex-col">
 
                   <span className="text-[11px] uppercase tracking-widest text-slate-400 font-bold">
-                    AI Подсказки
+                    Подсказки
                   </span>
 
                   <span className="text-sm text-slate-500">
-                    Выберите действие или ответ
+                    Выберите ответ или напишите свой
                   </span>
 
                 </div>
