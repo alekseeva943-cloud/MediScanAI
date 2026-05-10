@@ -54,7 +54,7 @@ export default async function handler(
 
     const lastMessage =
       safeMessages[
-      safeMessages.length - 1
+        safeMessages.length - 1
       ];
 
     const history =
@@ -193,37 +193,190 @@ export default async function handler(
       );
 
     // -----------------------------------
+    // SAFE AI RESPONSE PARSING
+    // -----------------------------------
+
+    let parsedResponse: any = null;
+
+    try {
+
+      if (
+
+        typeof result?.text === 'string'
+
+        &&
+
+        result.text
+          .trim()
+          .startsWith('{')
+
+      ) {
+
+        parsedResponse =
+          JSON.parse(
+            result.text
+          );
+      }
+
+    } catch (parseError) {
+
+      console.error(
+        'JSON parse failed:',
+        parseError
+      );
+    }
+
+    // -----------------------------------
+    // FINAL TEXT
+    // -----------------------------------
+
+    const finalText =
+
+      parsedResponse?.text
+
+      ||
+
+      result?.text
+
+      ||
+
+      'Не удалось сформировать ответ';
+
+    // -----------------------------------
+    // FINAL QUICK REPLIES
+    // -----------------------------------
+
+    let finalQuickReplies: string[] = [];
+
+    if (
+
+      Array.isArray(
+        parsedResponse?.quick_replies
+      )
+
+    ) {
+
+      finalQuickReplies =
+        parsedResponse
+          .quick_replies;
+
+    } else if (
+
+      Array.isArray(
+        result?.quickReplies
+      )
+
+    ) {
+
+      finalQuickReplies =
+        result.quickReplies;
+    }
+
+    // -----------------------------------
+    // ALWAYS ADD SKIP BUTTON
+    // -----------------------------------
+
+    if (
+
+      finalQuickReplies.length > 0
+
+      &&
+
+      !finalQuickReplies.includes(
+        'Пропустить'
+      )
+
+    ) {
+
+      finalQuickReplies.push(
+        'Пропустить'
+      );
+    }
+
+    // -----------------------------------
+    // INTERVIEW COMPLETED
+    // -----------------------------------
+
+    const interviewCompleted =
+
+      parsedResponse
+        ?.interview_completed
+
+      ||
+
+      result?.decision
+        ?.interviewCompleted
+
+      ||
+
+      false;
+
+    // -----------------------------------
+    // FINAL ACTIONS
+    // -----------------------------------
+
+    if (
+
+      interviewCompleted
+
+      &&
+
+      finalQuickReplies.length === 0
+
+    ) {
+
+      finalQuickReplies = [
+
+        '📄 Создать отчет',
+
+        '🩻 Загрузить МРТ',
+
+        '🧪 Прикрепить анализы',
+
+        '📷 Загрузить фото',
+
+        '➕ Добавить симптомы'
+      ];
+    }
+
+    // -----------------------------------
     // RESPONSE
     // -----------------------------------
 
     return res.status(200).json({
 
       text:
-        result.text || "",
+        finalText,
 
-      decision:
-        result.decision || {},
+      decision: {
+
+        ...(result?.decision || {}),
+
+        mode:
+
+          parsedResponse
+            ?.render_mode
+
+          ||
+
+          result?.decision
+            ?.mode
+      },
 
       quickReplies:
-
-        Array.isArray(
-          result.quickReplies
-        )
-
-          ? result.quickReplies
-
-          : [],
+        finalQuickReplies,
 
       updatedMemory:
-        result.updatedMemory || null,
+        result?.updatedMemory || null,
+
+      // ВАЖНО:
+      // возвращаем НОВЫЙ analysis,
+      // а не старый из req.body
 
       lastAnalysis:
-        lastAnalysis || null,
+        result?.lastAnalysis || null,
 
-      interviewCompleted:
-
-        result.decision
-          ?.interviewCompleted || false
+      interviewCompleted
     });
 
   } catch (error: any) {
