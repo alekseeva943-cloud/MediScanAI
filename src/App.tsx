@@ -2,7 +2,8 @@
 
 import {
   useCallback,
-  useMemo
+  useMemo,
+  useState
 } from 'react';
 
 import {
@@ -17,7 +18,8 @@ import {
 import {
   Bot,
   Trash2,
-  ShieldAlert
+  ShieldAlert,
+  Brain
 } from 'lucide-react';
 
 import {
@@ -45,7 +47,19 @@ import type {
   Message
 } from './types';
 
+import {
+  PatientProfilePanel
+} from './components/PatientProfilePanel';
+
 export default function App() {
+
+  const [
+
+    isProfileOpen,
+
+    setIsProfileOpen
+
+  ] = useState(false);
 
   const {
 
@@ -815,6 +829,27 @@ export default function App() {
 
             className="flex items-center gap-2 px-3 text-teal-50 hover:bg-white/10 hover:text-white transition-all rounded-xl"
 
+            onClick={() =>
+              setIsProfileOpen(true)
+            }
+          >
+
+            <Brain size={16} />
+
+            <span className="hidden sm:inline text-xs font-bold uppercase tracking-tight">
+
+              Профиль
+
+            </span>
+
+          </Button>
+
+          <Button
+
+            variant="ghost"
+
+            className="flex items-center gap-2 px-3 text-teal-50 hover:bg-white/10 hover:text-white transition-all rounded-xl"
+
             onClick={() => {
 
               clearHistory();
@@ -883,6 +918,21 @@ export default function App() {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[30%] bg-blue-400/5 blur-[100px] rounded-full pointer-events-none" />
 
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[30%] bg-teal-400/5 blur-[100px] rounded-full pointer-events-none" />
+
+      <PatientProfilePanel
+
+        isOpen={isProfileOpen}
+
+        onClose={() =>
+          setIsProfileOpen(false)
+        }
+
+        profile={
+          useChatStore
+            .getState()
+            .patientProfile
+        }
+      />
 
     </div>
   );
