@@ -161,16 +161,16 @@ export default function App() {
           image
 
             ? [{
-                type: 'image',
-                url: image
-              }]
+              type: 'image',
+              url: image
+            }]
 
             : audioBlob
 
               ? [{
-                  type: 'voice',
-                  url: 'voice.webm'
-                }]
+                type: 'voice',
+                url: 'voice.webm'
+              }]
 
               : undefined
       };
@@ -260,14 +260,57 @@ export default function App() {
           useChatStore
             .getState()
             .messages
-            .map(m => ({
+            .map(m => {
 
-              role:
-                m.role,
+              // -----------------------------------
+              // USER MESSAGE
+              // -----------------------------------
 
-              content:
-                m.content
-            }));
+              if (m.role === 'user') {
+
+                return {
+
+                  role:
+                    'user',
+
+                  content:
+                    m.content
+                };
+              }
+
+              // -----------------------------------
+              // ASSISTANT MESSAGE
+              // -----------------------------------
+
+              return {
+
+                role:
+                  'assistant',
+
+                content:
+                  JSON.stringify({
+
+                    text:
+                      m.content,
+
+                    render_mode:
+                      m.ai_data?.render_mode || null,
+
+                    quick_replies:
+                      m.ai_data?.quick_replies || [],
+
+                    interview_completed:
+
+                      m.ai_data
+                        ?.interviewCompleted || false,
+
+                    router_decision:
+
+                      m.ai_data
+                        ?.router_decision || null
+                  })
+              };
+            });
 
         // -----------------------------------
         // STORE DATA
@@ -404,9 +447,6 @@ export default function App() {
           suggested_actions: [],
 
           quick_replies:
-            finalQuickReplies,
-
-          quickReplies:
             finalQuickReplies,
 
           interviewCompleted:
