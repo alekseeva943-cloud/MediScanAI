@@ -13,7 +13,11 @@ import {
   Loader2,
   StopCircle,
   Paperclip,
-  Sparkles
+  Sparkles,
+  FileText,
+  ImagePlus,
+  ScanLine,
+  Plus
 } from 'lucide-react';
 
 import {
@@ -27,8 +31,6 @@ import {
 } from 'motion/react';
 
 import { cn } from '../lib/utils';
-
-import { useChatStore } from '../store/useChatStore';
 
 import { CameraModal } from './CameraModal';
 
@@ -185,8 +187,8 @@ export const ChatInput = ({
           ? 'audio/webm'
 
           : MediaRecorder.isTypeSupported(
-              'audio/ogg'
-            )
+            'audio/ogg'
+          )
 
             ? 'audio/ogg'
 
@@ -286,20 +288,149 @@ export const ChatInput = ({
   };
 
   // -----------------------------------
-  // QUICK REPLY CLICK
+  // SPECIAL ACTIONS
   // -----------------------------------
 
-  const handleSuggestionClick = (
+  const handleSpecialAction = (
+    suggestion: string
+  ) => {
+
+    // REPORT MODE
+
+    if (
+      suggestion.includes(
+        'Создать отчет'
+      )
+    ) {
+
+      onSend(
+        '__GENERATE_MEDICAL_REPORT__'
+      );
+
+      return;
+    }
+
+    // MRI
+
+    if (
+      suggestion.includes(
+        'МРТ'
+      )
+    ) {
+
+      fileInputRef.current?.click();
+
+      return;
+    }
+
+    // ANALYSES
+
+    if (
+      suggestion.includes(
+        'анализ'
+      )
+    ) {
+
+      fileInputRef.current?.click();
+
+      return;
+    }
+
+    // PHOTO
+
+    if (
+      suggestion.includes(
+        'фото'
+      )
+    ) {
+
+      setIsCameraOpen(true);
+
+      return;
+    }
+
+    // ADDITIONAL SYMPTOMS
+
+    if (
+      suggestion.includes(
+        'Добавить симптомы'
+      )
+    ) {
+
+      setText('');
+
+      return;
+    }
+
+    // DEFAULT
+
+    onSend(suggestion);
+  };
+
+  // -----------------------------------
+  // ICON DETECTION
+  // -----------------------------------
+
+  const renderSuggestionIcon = (
     suggestion: string
   ) => {
 
     if (
-      isLoading
+      suggestion.includes(
+        'Создать отчет'
+      )
     ) {
-      return;
+
+      return (
+        <FileText size={13} />
+      );
     }
 
-    onSend(suggestion);
+    if (
+      suggestion.includes(
+        'МРТ'
+      )
+    ) {
+
+      return (
+        <ScanLine size={13} />
+      );
+    }
+
+    if (
+      suggestion.includes(
+        'анализ'
+      )
+    ) {
+
+      return (
+        <Paperclip size={13} />
+      );
+    }
+
+    if (
+      suggestion.includes(
+        'фото'
+      )
+    ) {
+
+      return (
+        <ImagePlus size={13} />
+      );
+    }
+
+    if (
+      suggestion.includes(
+        'Добавить'
+      )
+    ) {
+
+      return (
+        <Plus size={13} />
+      );
+    }
+
+    return null;
   };
 
   // -----------------------------------
@@ -358,7 +489,7 @@ export const ChatInput = ({
                   </span>
 
                   <span className="text-sm text-slate-500">
-                    Выберите вариант ответа
+                    Выберите действие или ответ
                   </span>
 
                 </div>
@@ -380,12 +511,25 @@ export const ChatInput = ({
                     const isSkip =
                       s.includes('Пропустить');
 
-                    const isMedical =
+                    const isAction =
+
+                      s.includes('отчет')
+
+                      ||
+
                       s.includes('МРТ')
+
                       ||
+
                       s.includes('анализ')
+
                       ||
-                      s.includes('фото');
+
+                      s.includes('фото')
+
+                      ||
+
+                      s.includes('Добавить');
 
                     return (
 
@@ -397,13 +541,13 @@ export const ChatInput = ({
 
                         className={cn(
 
-                          "whitespace-nowrap rounded-full py-2 px-4 h-auto text-xs border transition-all",
+                          "whitespace-nowrap rounded-full py-2 px-4 h-auto text-xs border transition-all flex items-center gap-2",
 
                           isSkip
 
                             ? "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600"
 
-                            : isMedical
+                            : isAction
 
                               ? "bg-teal-50 hover:bg-teal-100 border-teal-200 text-teal-700"
 
@@ -411,9 +555,11 @@ export const ChatInput = ({
                         )}
 
                         onClick={() =>
-                          handleSuggestionClick(s)
+                          handleSpecialAction(s)
                         }
                       >
+
+                        {renderSuggestionIcon(s)}
 
                         {s}
 
@@ -480,8 +626,6 @@ export const ChatInput = ({
         className="flex gap-1.5 items-center"
       >
 
-        {/* FILE */}
-
         <input
 
           type="file"
@@ -494,8 +638,6 @@ export const ChatInput = ({
 
           onChange={handleImageUpload}
         />
-
-        {/* FILE BUTTON */}
 
         <Button
 
@@ -513,8 +655,6 @@ export const ChatInput = ({
             isLoading ||
             isRecording
           }
-
-          title="Загрузить файл"
         >
 
           <Paperclip
@@ -523,8 +663,6 @@ export const ChatInput = ({
           />
 
         </Button>
-
-        {/* CAMERA BUTTON */}
 
         <Button
 
@@ -542,8 +680,6 @@ export const ChatInput = ({
             isLoading ||
             isRecording
           }
-
-          title="Сделать фото"
         >
 
           <Camera
@@ -552,8 +688,6 @@ export const ChatInput = ({
           />
 
         </Button>
-
-        {/* INPUT */}
 
         <div className="relative flex-1">
 
@@ -569,9 +703,9 @@ export const ChatInput = ({
 
               isRecording
 
-                ? "Слушаю вас..."
+                ? 'Слушаю вас...'
 
-                : "Опишите симптомы..."
+                : 'Опишите симптомы...'
             }
 
             disabled={
@@ -582,10 +716,10 @@ export const ChatInput = ({
 
             className={cn(
 
-              "pr-12 rounded-full h-11 border-slate-200",
+              'pr-12 rounded-full h-11 border-slate-200',
 
               isRecording &&
-              "pl-12 border-red-200 bg-red-50/30"
+              'pl-12 border-red-200 bg-red-50/30'
             )}
           />
 
@@ -612,22 +746,20 @@ export const ChatInput = ({
 
         </div>
 
-        {/* VOICE */}
-
         <Button
 
           type="button"
 
           variant={
             isRecording
-              ? "danger"
-              : "ghost"
+              ? 'danger'
+              : 'ghost'
           }
 
           className={cn(
-            "rounded-full w-11 h-11 p-0 shrink-0",
+            'rounded-full w-11 h-11 p-0 shrink-0',
             isRecording &&
-            "animate-pulse"
+            'animate-pulse'
           )}
 
           onClick={
@@ -639,12 +771,6 @@ export const ChatInput = ({
           disabled={
             isLoading ||
             isTranscribing
-          }
-
-          title={
-            isRecording
-              ? "Остановить"
-              : "Голосовой поиск"
           }
         >
 
@@ -660,8 +786,6 @@ export const ChatInput = ({
               />
             )}
         </Button>
-
-        {/* SEND */}
 
         <Button
 
