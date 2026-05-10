@@ -292,24 +292,24 @@ ${recentConversation}
     // -----------------------------------------------------
 
     const result =
-      await orchestrator.processRequest(
+  await orchestrator.processRequest(
 
-        userInput,
+    userInput,
 
-        imageParts,
+    imageParts,
 
-        [
+    [
 
-          {
-            role: 'system',
-            content: medicalContext
-          }
-        ],
+      {
+        role: 'system',
+        content: medicalContext
+      }
+    ],
 
-        patientProfile || {},
+    patientProfile || {},
 
-        lastAnalysis || null
-      );
+    lastAnalysis || null
+  );
 
     // -----------------------------------------------------
     // SAFE JSON PARSE
