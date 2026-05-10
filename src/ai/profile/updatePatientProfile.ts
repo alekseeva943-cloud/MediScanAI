@@ -2,6 +2,12 @@
 
 // Этот файл отвечает за обновление
 // профиля пациента через GPT.
+//
+// ВАЖНО:
+//
+// GPT может забывать некоторые поля.
+// Поэтому backend дополнительно
+// нормализует и стабилизирует profile.
 
 import { OpenAIProvider }
   from "../providers/openaiProvider.js";
@@ -28,9 +34,13 @@ function deepMerge(
   };
 
   if (
+
     typeof target !== "object"
+
     ||
+
     typeof source !== "object"
+
   ) {
 
     return source;
@@ -117,9 +127,103 @@ function deepMerge(
   return output;
 }
 
+// -----------------------------------
+// NORMALIZE PROFILE
+// -----------------------------------
+
+function normalizeProfile(
+  profile: PatientProfile
+): PatientProfile {
+
+  const resolvedTopics =
+    new Set(
+      profile.resolvedTopics
+    );
+
+  // -----------------------------------
+  // PAIN
+  // -----------------------------------
+
+  if (
+    profile.pain.character
+  ) {
+
+    resolvedTopics.add(
+      "pain_character"
+    );
+  }
+
+  if (
+    profile.pain.location
+  ) {
+
+    resolvedTopics.add(
+      "pain_location"
+    );
+  }
+
+  if (
+    profile.pain.duration
+  ) {
+
+    resolvedTopics.add(
+      "pain_duration"
+    );
+  }
+
+  // -----------------------------------
+  // TRAUMA
+  // -----------------------------------
+
+  if (
+    profile.trauma.exists
+  ) {
+
+    resolvedTopics.add(
+      "trauma"
+    );
+  }
+
+  // -----------------------------------
+  // NEGATIVE FINDINGS
+  // -----------------------------------
+
+  if (
+
+    profile.negativeFindings
+      .includes("отек")
+
+  ) {
+
+    resolvedTopics.add(
+      "swelling"
+    );
+  }
+
+  if (
+
+    profile.negativeFindings
+      .includes("онемение")
+
+  ) {
+
+    resolvedTopics.add(
+      "numbness"
+    );
+  }
+
+  profile.resolvedTopics =
+    Array.from(
+      resolvedTopics
+    );
+
+  return profile;
+}
+
 export class PatientProfileUpdater {
 
-  private provider: OpenAIProvider;
+  private provider:
+    OpenAIProvider;
 
   constructor(apiKey: string) {
 
@@ -152,12 +256,14 @@ Return ONLY profile update JSON.
 `;
 
       const response =
+
         await this.provider
           .generateRouterDecision(
             prompt
           );
 
       const cleaned =
+
         response
 
           .replace(/```json/g, "")
@@ -170,12 +276,24 @@ Return ONLY profile update JSON.
         JSON.parse(cleaned);
 
       const mergedProfile =
+
         deepMerge(
           currentProfile,
           partialUpdate
         );
 
-      return mergedProfile;
+      const normalizedProfile =
+
+        normalizeProfile(
+          mergedProfile
+        );
+
+      console.log(
+        "Normalized profile:",
+        normalizedProfile
+      );
+
+      return normalizedProfile;
 
     } catch (error) {
 
