@@ -3,33 +3,9 @@
 import { create } from 'zustand';
 
 import type {
-  Message
+  Message,
+  MedicalCase
 } from '../types';
-
-interface MedicalInterviewState {
-
-  mainComplaint: string;
-
-  currentSymptoms: string[];
-
-  confirmedSymptoms: string[];
-
-  deniedSymptoms: string[];
-
-  possibleTriggers: string[];
-
-  excludedConditions: string[];
-
-  askedQuestions: string[];
-
-  answeredFacts: string[];
-
-  currentHypotheses: string[];
-
-  timeline: string[];
-
-  interviewCompleted: boolean;
-}
 
 interface ChatStore {
 
@@ -45,8 +21,11 @@ interface ChatStore {
 
   lastAnalysis: any;
 
-  medicalInterviewState:
-    MedicalInterviewState;
+  medicalCase: MedicalCase | null;
+
+  // -----------------------------------
+  // ACTIONS
+  // -----------------------------------
 
   addMessage:
     (message: Message) => void;
@@ -77,58 +56,66 @@ interface ChatStore {
   setLastAnalysis:
     (analysis: any) => void;
 
-  updateInterviewState:
+  setMedicalCase:
     (
-      updates: Partial<MedicalInterviewState>
+      medicalCase: MedicalCase
     ) => void;
 
-  addAskedQuestion:
-    (question: string) => void;
+  updateMedicalCase:
+    (
+      updates: Partial<MedicalCase>
+    ) => void;
 
-  addConfirmedSymptom:
-    (symptom: string) => void;
-
-  addDeniedSymptom:
-    (symptom: string) => void;
-
-  addPossibleTrigger:
-    (trigger: string) => void;
-
-  addAnsweredFact:
-    (fact: string) => void;
-
-  resetInterviewState:
+  resetMedicalCase:
     () => void;
 }
 
-const initialInterviewState:
-  MedicalInterviewState = {
+// -----------------------------------
+// INITIAL MEDICAL CASE
+// -----------------------------------
 
-  mainComplaint: '',
+const initialMedicalCase:
+  MedicalCase = {
 
-  currentSymptoms: [],
+  probableCause: '',
 
-  confirmedSymptoms: [],
+  confidence: 'low',
 
-  deniedSymptoms: [],
+  dangerLevel: 'low',
 
-  possibleTriggers: [],
+  symptoms: [],
+
+  detectedTriggers: [],
 
   excludedConditions: [],
 
-  askedQuestions: [],
+  possibleConditions: [],
 
-  answeredFacts: [],
+  recommendations: [],
 
-  currentHypotheses: [],
+  redFlags: [],
 
-  timeline: [],
+  followUpQuestions: [],
 
-  interviewCompleted: false
+  clarificationCount: 0,
+
+  interviewCompleted: false,
+
+  reportGenerated: false,
+
+  createdAt:
+    Date.now(),
+
+  updatedAt:
+    Date.now()
 };
 
 export const useChatStore =
   create<ChatStore>((set) => ({
+
+    // -----------------------------------
+    // STATE
+    // -----------------------------------
 
     messages: [],
 
@@ -137,6 +124,11 @@ export const useChatStore =
     status: null,
 
     error: null,
+
+    lastAnalysis: null,
+
+    medicalCase:
+      initialMedicalCase,
 
     medicalMemory: {
 
@@ -161,10 +153,9 @@ export const useChatStore =
       familyHistory: []
     },
 
-    lastAnalysis: null,
-
-    medicalInterviewState:
-      initialInterviewState,
+    // -----------------------------------
+    // ADD MESSAGE
+    // -----------------------------------
 
     addMessage:
       (message) =>
@@ -176,6 +167,10 @@ export const useChatStore =
             message
           ]
         })),
+
+    // -----------------------------------
+    // UPDATE MESSAGE
+    // -----------------------------------
 
     updateMessage:
       (id, updates) =>
@@ -196,6 +191,10 @@ export const useChatStore =
             )
         })),
 
+    // -----------------------------------
+    // CLEAR HISTORY
+    // -----------------------------------
+
     clearHistory:
       () =>
 
@@ -209,8 +208,8 @@ export const useChatStore =
 
           status: null,
 
-          medicalInterviewState:
-            initialInterviewState,
+          medicalCase:
+            initialMedicalCase,
 
           medicalMemory: {
 
@@ -236,6 +235,10 @@ export const useChatStore =
           }
         }),
 
+    // -----------------------------------
+    // LOADING
+    // -----------------------------------
+
     setLoading:
       (
         loading,
@@ -249,12 +252,20 @@ export const useChatStore =
           status
         }),
 
+    // -----------------------------------
+    // ERROR
+    // -----------------------------------
+
     setError:
       (error) =>
 
         set({
           error
         }),
+
+    // -----------------------------------
+    // MEMORY
+    // -----------------------------------
 
     setMedicalMemory:
       (medicalMemory) =>
@@ -263,6 +274,10 @@ export const useChatStore =
           medicalMemory
         }),
 
+    // -----------------------------------
+    // ANALYSIS
+    // -----------------------------------
+
     setLastAnalysis:
       (lastAnalysis) =>
 
@@ -270,135 +285,57 @@ export const useChatStore =
           lastAnalysis
         }),
 
-    updateInterviewState:
+    // -----------------------------------
+    // SET MEDICAL CASE
+    // -----------------------------------
+
+    setMedicalCase:
+      (medicalCase) =>
+
+        set({
+
+          medicalCase: {
+
+            ...medicalCase,
+
+            updatedAt:
+              Date.now()
+          }
+        }),
+
+    // -----------------------------------
+    // UPDATE MEDICAL CASE
+    // -----------------------------------
+
+    updateMedicalCase:
       (updates) =>
 
         set((state) => ({
 
-          medicalInterviewState: {
+          medicalCase: {
 
-            ...state.medicalInterviewState,
+            ...(
+              state.medicalCase
+              || initialMedicalCase
+            ),
 
-            ...updates
+            ...updates,
+
+            updatedAt:
+              Date.now()
           }
         })),
 
-    addAskedQuestion:
-      (question) =>
+    // -----------------------------------
+    // RESET MEDICAL CASE
+    // -----------------------------------
 
-        set((state) => ({
-
-          medicalInterviewState: {
-
-            ...state.medicalInterviewState,
-
-            askedQuestions: [
-
-              ...new Set([
-                ...state
-                  .medicalInterviewState
-                  .askedQuestions,
-
-                question
-              ])
-            ]
-          }
-        })),
-
-    addConfirmedSymptom:
-      (symptom) =>
-
-        set((state) => ({
-
-          medicalInterviewState: {
-
-            ...state.medicalInterviewState,
-
-            confirmedSymptoms: [
-
-              ...new Set([
-                ...state
-                  .medicalInterviewState
-                  .confirmedSymptoms,
-
-                symptom
-              ])
-            ]
-          }
-        })),
-
-    addDeniedSymptom:
-      (symptom) =>
-
-        set((state) => ({
-
-          medicalInterviewState: {
-
-            ...state.medicalInterviewState,
-
-            deniedSymptoms: [
-
-              ...new Set([
-                ...state
-                  .medicalInterviewState
-                  .deniedSymptoms,
-
-                symptom
-              ])
-            ]
-          }
-        })),
-
-    addPossibleTrigger:
-      (trigger) =>
-
-        set((state) => ({
-
-          medicalInterviewState: {
-
-            ...state.medicalInterviewState,
-
-            possibleTriggers: [
-
-              ...new Set([
-                ...state
-                  .medicalInterviewState
-                  .possibleTriggers,
-
-                trigger
-              ])
-            ]
-          }
-        })),
-
-    addAnsweredFact:
-      (fact) =>
-
-        set((state) => ({
-
-          medicalInterviewState: {
-
-            ...state.medicalInterviewState,
-
-            answeredFacts: [
-
-              ...new Set([
-                ...state
-                  .medicalInterviewState
-                  .answeredFacts,
-
-                fact
-              ])
-            ]
-          }
-        })),
-
-    resetInterviewState:
+    resetMedicalCase:
       () =>
 
         set({
 
-          medicalInterviewState:
-            initialInterviewState
+          medicalCase:
+            initialMedicalCase
         })
   }));

@@ -37,6 +37,8 @@ export interface RouterDecision {
   quickReplies?: string[];
 
   interviewCompleted?: boolean;
+
+  probableCause?: string;
 }
 
 export interface AIResponse {
@@ -61,6 +63,10 @@ export interface AIResponse {
   render_mode?: string;
 
   router_decision?: RouterDecision;
+
+  interviewCompleted?: boolean;
+
+  message?: string;
 }
 
 export interface Message {
@@ -102,6 +108,45 @@ export interface MedicalMemory {
   surgeries: string[];
 
   familyHistory: string[];
+}
+
+export interface MedicalCase {
+
+  probableCause: string;
+
+  confidence:
+    | 'low'
+    | 'medium'
+    | 'high';
+
+  dangerLevel:
+    | 'low'
+    | 'medium'
+    | 'high';
+
+  symptoms: string[];
+
+  detectedTriggers: string[];
+
+  excludedConditions: string[];
+
+  possibleConditions: string[];
+
+  recommendations: string[];
+
+  redFlags: string[];
+
+  followUpQuestions: string[];
+
+  clarificationCount: number;
+
+  interviewCompleted: boolean;
+
+  reportGenerated: boolean;
+
+  createdAt: number;
+
+  updatedAt: number;
 }
 
 export interface AnalysisSnapshot {

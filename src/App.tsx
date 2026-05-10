@@ -69,19 +69,17 @@ export default function App() {
 
     setLastAnalysis,
 
-    medicalInterviewState,
+    medicalCase,
 
-    addAskedQuestion,
+    updateMedicalCase,
 
-    addAnsweredFact,
-
-    addPossibleTrigger,
-
-    addConfirmedSymptom,
-
-    updateInterviewState
+    resetMedicalCase
 
   } = useChatStore();
+
+  // -----------------------------------
+  // LAST AI RESPONSE
+  // -----------------------------------
 
   const lastAiResponse =
     useMemo(() => {
@@ -96,6 +94,10 @@ export default function App() {
       ]?.ai_data;
 
     }, [messages]);
+
+  // -----------------------------------
+  // SEND MESSAGE
+  // -----------------------------------
 
   const handleSendMessage =
     useCallback(async (
@@ -124,6 +126,10 @@ export default function App() {
 
         return;
       }
+
+      // -----------------------------------
+      // USER MESSAGE
+      // -----------------------------------
 
       const messageId =
         nanoid();
@@ -183,7 +189,7 @@ export default function App() {
           text;
 
         // -----------------------------------
-        // VOICE
+        // VOICE TRANSCRIPTION
         // -----------------------------------
 
         if (audioBlob) {
@@ -220,66 +226,106 @@ export default function App() {
         }
 
         // -----------------------------------
-        // INTERVIEW MEMORY
+        // SMART MEDICAL CASE UPDATE
         // -----------------------------------
 
-        if (
+        const lower =
+          finalContent.toLowerCase();
 
-          finalContent
+        const updatedSymptoms = [
+          ...(medicalCase?.symptoms || [])
+        ];
 
-          &&
+        const updatedTriggers = [
+          ...(medicalCase?.detectedTriggers || [])
+        ];
 
-          finalContent !== 'Пропустить'
+        // -----------------------------------
+        // SYMPTOMS
+        // -----------------------------------
 
-        ) {
+        const symptomKeywords = [
 
-          addAnsweredFact(
-            finalContent
-          );
+          'боль',
+          'жжение',
+          'зуд',
+          'температура',
+          'кашель',
+          'отек',
+          'тошнота',
+          'диарея',
+          'рвота',
+          'кровь',
+          'головокружение',
+          'слабость'
+        ];
 
-          // VERY LIGHTWEIGHT TRIGGER DETECTION
+        symptomKeywords.forEach(
+          symptom => {
 
-          const lower =
-            finalContent.toLowerCase();
+            if (
+              lower.includes(symptom)
+              &&
+              !updatedSymptoms.includes(symptom)
+            ) {
 
-          if (
-
-            lower.includes('остр')
-
-            ||
-
-            lower.includes('алког')
-
-          ) {
-
-            addPossibleTrigger(
-              finalContent
-            );
+              updatedSymptoms.push(
+                symptom
+              );
+            }
           }
+        );
 
-          if (
+        // -----------------------------------
+        // TRIGGERS
+        // -----------------------------------
 
-            lower.includes('зуд')
+        const triggerKeywords = [
 
-            ||
+          'остр',
+          'алког',
+          'шаурм',
+          'халапеньо',
+          'рыб',
+          'кость',
+          'травма',
+          'падение'
+        ];
 
-            lower.includes('боль')
+        triggerKeywords.forEach(
+          trigger => {
 
-            ||
+            if (
+              lower.includes(trigger)
+              &&
+              !updatedTriggers.includes(trigger)
+            ) {
 
-            lower.includes('жжение')
-
-            ||
-
-            lower.includes('отек')
-
-          ) {
-
-            addConfirmedSymptom(
-              finalContent
-            );
+              updatedTriggers.push(
+                trigger
+              );
+            }
           }
-        }
+        );
+
+        // -----------------------------------
+        // UPDATE CASE
+        // -----------------------------------
+
+        updateMedicalCase({
+
+          symptoms:
+            updatedSymptoms,
+
+          detectedTriggers:
+            updatedTriggers,
+
+          clarificationCount:
+            (
+              medicalCase
+                ?.clarificationCount || 0
+            ) + 1
+        });
 
         // -----------------------------------
         // LOADING
@@ -339,64 +385,69 @@ export default function App() {
                     interview_completed:
 
                       m.ai_data
-                        ?.interviewCompleted || false,
-
-                    router_decision:
-
-                      m.ai_data
-                        ?.router_decision || null
+                        ?.interviewCompleted || false
                   })
               };
             });
 
         // -----------------------------------
-        // MEDICAL INTERVIEW CONTEXT
+        // MEDICAL CASE CONTEXT
         // -----------------------------------
 
-        const interviewContext = {
+        const medicalContext = {
 
-          medical_interview_state: {
+          medical_case: {
 
-            main_complaint:
-              medicalInterviewState
-                .mainComplaint,
+            probable_cause:
+              medicalCase
+                ?.probableCause || '',
 
-            confirmed_symptoms:
-              medicalInterviewState
-                .confirmedSymptoms,
+            symptoms:
+              updatedSymptoms,
 
-            denied_symptoms:
-              medicalInterviewState
-                .deniedSymptoms,
+            detected_triggers:
+              updatedTriggers,
 
-            possible_triggers:
-              medicalInterviewState
-                .possibleTriggers,
+            clarification_count:
 
-            asked_questions:
-              medicalInterviewState
-                .askedQuestions,
+              (
+                medicalCase
+                  ?.clarificationCount || 0
+              ) + 1,
 
-            answered_facts:
-              medicalInterviewState
-                .answeredFacts,
+            excluded_conditions:
 
-            current_hypotheses:
-              medicalInterviewState
-                .currentHypotheses
+              medicalCase
+                ?.excludedConditions || [],
+
+            possible_conditions:
+
+              medicalCase
+                ?.possibleConditions || [],
+
+            follow_up_questions:
+
+              medicalCase
+                ?.followUpQuestions || []
           },
 
-          instructions: [
+          CRITICAL_RULES: [
 
-            'НЕ повторяй уже заданные вопросы',
+            'НЕ повторяй вопросы',
 
-            'Анализируй уже известные факты',
+            'Если вероятная причина уже очевидна — завершай интервью',
 
-            'Сначала исключай наиболее вероятные причины',
+            'Если причина понятна и нет red flags — не задавай больше 3-5 вопросов',
 
-            'Не спрашивай повторно про подтвержденные триггеры',
+            'Не задавай циклические вопросы',
 
-            'Не задавай generic-вопросы'
+            'Не уточняй одно и то же разными формулировками',
+
+            'Если low risk — быстро переходи к рекомендациям',
+
+            'Веди себя как опытный врач, а не бесконечная анкета',
+
+            'После достаточного количества данных ОБЯЗАТЕЛЬНО завершай интервью'
           ]
         };
 
@@ -434,7 +485,7 @@ export default function App() {
 
                 content:
                   JSON.stringify(
-                    interviewContext
+                    medicalContext
                   )
               }
             ],
@@ -461,20 +512,42 @@ export default function App() {
         } = response;
 
         // -----------------------------------
-        // SAVE ASKED QUESTION
+        // UPDATE MEDICAL CASE
         // -----------------------------------
 
-        if (
+        updateMedicalCase({
 
-          decision?.mode ===
-          'CLARIFICATION_MODE'
+          probableCause:
 
-        ) {
+            decision?.probableCause
 
-          addAskedQuestion(
-            aiText
-          );
-        }
+            ||
+
+            medicalCase
+              ?.probableCause
+
+            ||
+
+            '',
+
+          dangerLevel:
+
+            decision?.emergencyLevel
+
+            || 'low',
+
+          interviewCompleted:
+            interviewCompleted,
+
+          followUpQuestions:
+
+            decision?.question
+
+              ? [decision.question]
+
+              : medicalCase
+                  ?.followUpQuestions || []
+        });
 
         // -----------------------------------
         // MEMORY
@@ -513,44 +586,25 @@ export default function App() {
             : [];
 
         // -----------------------------------
-        // FALLBACK ACTIONS
+        // FINAL ACTIONS
         // -----------------------------------
 
         if (
-
           interviewCompleted
-
-          &&
-
-          finalQuickReplies.length === 0
-
         ) {
 
           finalQuickReplies = [
 
-            '📄 Создать отчет',
-
-            '🩻 Загрузить МРТ',
+            '📄 Создать PDF отчет',
 
             '🧪 Прикрепить анализы',
+
+            '🩻 Загрузить МРТ',
 
             '📷 Загрузить фото',
 
             '➕ Добавить симптомы'
           ];
-        }
-
-        // -----------------------------------
-        // INTERVIEW COMPLETE
-        // -----------------------------------
-
-        if (interviewCompleted) {
-
-          updateInterviewState({
-
-            interviewCompleted:
-              true
-          });
         }
 
         // -----------------------------------
@@ -560,31 +614,18 @@ export default function App() {
         const aiData: AIResponse = {
 
           summary:
-
-            decision?.mode ===
-            'CLARIFICATION_MODE'
-
-              ? ''
-
-              : aiText,
-
-          message:
             aiText,
 
-          probableDiagnoses: [],
-
-          reasoning: [],
-
-          risks: [],
+          possible_risks: [],
 
           recommendations: [],
-
-          medications: [],
 
           suggested_actions: [],
 
           quick_replies:
             finalQuickReplies,
+
+          medical_warning: '',
 
           interviewCompleted:
             interviewCompleted,
@@ -601,6 +642,10 @@ export default function App() {
           router_decision:
             decision
         };
+
+        // -----------------------------------
+        // ASSISTANT MESSAGE
+        // -----------------------------------
 
         const assistantMessage: Message = {
 
@@ -649,6 +694,8 @@ export default function App() {
 
       messages,
 
+      medicalCase,
+
       addMessage,
 
       updateMessage,
@@ -661,12 +708,18 @@ export default function App() {
 
       setLastAnalysis,
 
-      medicalInterviewState
+      updateMedicalCase
     ]);
+
+  // -----------------------------------
+  // UI
+  // -----------------------------------
 
   return (
 
     <div className="flex flex-col h-screen max-w-2xl mx-auto bg-white shadow-2xl relative overflow-hidden">
+
+      {/* ERROR */}
 
       <AnimatePresence>
 
@@ -722,6 +775,8 @@ export default function App() {
 
       </AnimatePresence>
 
+      {/* HEADER */}
+
       <header className="px-5 py-4 bg-teal-600 border-b border-teal-700/50 flex items-center justify-between z-20 shadow-md">
 
         <div className="flex items-center gap-3">
@@ -765,7 +820,12 @@ export default function App() {
 
             className="flex items-center gap-2 px-3 text-teal-50 hover:bg-white/10 hover:text-white transition-all rounded-xl"
 
-            onClick={clearHistory}
+            onClick={() => {
+
+              clearHistory();
+
+              resetMedicalCase();
+            }}
           >
 
             <Trash2 size={16} />
@@ -817,6 +877,7 @@ export default function App() {
           isLoading={isLoading}
 
           suggestions={
+
             lastAiResponse
               ?.quick_replies
           }

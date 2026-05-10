@@ -1,3 +1,5 @@
+/* src/index.css */
+
 @import "tailwindcss";
 
 @theme {
@@ -8,14 +10,36 @@
 }
 
 @layer base {
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
   body {
     @apply bg-medical-bg text-slate-800 font-sans selection:bg-indigo-100;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  * {
+    box-sizing: border-box;
   }
 }
+
+/* ------------------------- */
+/* GLASS */
+/* ------------------------- */
 
 .glass {
   @apply bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl shadow-slate-200/30;
 }
+
+/* ------------------------- */
+/* CHAT BUBBLES */
+/* ------------------------- */
 
 .message-user {
   @apply bg-violet-50 text-violet-900 border border-violet-100/50 rounded-2xl rounded-tr-sm;
@@ -25,9 +49,41 @@
   @apply bg-white border border-slate-100 rounded-2xl rounded-tl-sm shadow-sm;
 }
 
+/* ------------------------- */
+/* QUICK REPLIES */
+/* ------------------------- */
+
+.quick-reply-chip {
+  @apply text-xs rounded-2xl px-3 py-2 h-auto whitespace-normal text-left leading-snug;
+}
+
+/* ------------------------- */
+/* SCROLLBAR */
+/* ------------------------- */
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ------------------------- */
+/* ANIMATIONS */
+/* ------------------------- */
+
 @keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .animate-pulse-soft {
