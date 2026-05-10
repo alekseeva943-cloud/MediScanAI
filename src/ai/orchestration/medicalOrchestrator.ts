@@ -1,20 +1,40 @@
 // src/ai/orchestration/medicalOrchestrator.ts
 
-import { OpenAIProvider } from "../providers/openaiProvider.js";
+// Главный orchestrator медицинского AI.
+//
+// Этот файл только координирует модули.
+//
+// Что делает orchestrator:
+//
+// - обновляет patient profile
+// - обновляет memory
+// - вызывает router
+// - управляет interview flow
+// - собирает diagnostic state
+// - собирает system prompt
+// - запускает response pipeline
+// - возвращает финальный ответ
+//
+// ВАЖНО:
+//
+// Здесь НЕ должно быть:
+// - giant prompts
+// - parsing logic
+// - normalization logic
+// - validation logic
+// - medical reasoning
+//
+// Всё это вынесено
+// в отдельные модули.
 
-import { MedicalRouter } from "../router/medicalRouter.js";
+import { MedicalRouter }
+  from "../router/medicalRouter.js";
 
-import { MedicalStateUpdater } from "./medicalStateUpdater.js";
+import { MedicalStateUpdater }
+  from "./medicalStateUpdater.js";
 
-import { SYSTEM_PROMPT } from "../prompts/systemPrompt.js";
-
-import { ANALYSIS_PROMPT } from "../prompts/analysisPrompt.js";
-
-import { UPDATE_ANALYSIS_PROMPT } from "../prompts/updateAnalysisPrompt.js";
-
-import { MEMORY_EXTRACTION_PROMPT } from "../prompts/memoryExtractionPrompt.js";
-
-import { ResponseMode } from "../types/index.js";
+import { ResponseMode }
+  from "../types/index.js";
 
 import type {
 
@@ -29,10 +49,6 @@ import type {
 } from "../types/index.js";
 
 import {
-  buildClarificationPrompt
-} from "../prompts/buildClarificationPrompt.js";
-
-import {
   buildDiagnosticState
 } from "../interview/buildDiagnosticState.js";
 
@@ -41,138 +57,68 @@ import {
 } from "../interview/buildInterviewState.js";
 
 import {
-  normalizeMedicalResponse
-} from "../normalization/normalizeMedicalResponse.js";
-
-import {
   mergeMedicalMemory
 } from "../memory/mergeMedicalMemory.js";
 
 import {
-  validateGeneratedQuestion
-} from "../interview/validateGeneratedQuestion.js";
+  EMPTY_PATIENT_PROFILE
+} from "../profile/patientProfile.js";
+
+import {
+  PatientProfileUpdater
+} from "../profile/updatePatientProfile.js";
+
+import {
+  buildSystemPrompt
+} from "../prompts/buildSystemPrompt.js";
+
+import {
+  MedicalResponsePipeline
+} from "../pipeline/medicalResponsePipeline.js";
 
 export class MedicalOrchestrator {
 
-  private provider: OpenAIProvider;
+  private router:
+    MedicalRouter;
 
-  private router: MedicalRouter;
+  private stateUpdater:
+    MedicalStateUpdater;
 
-  private stateUpdater: MedicalStateUpdater;
+  private profileUpdater:
+    PatientProfileUpdater;
+
+  private responsePipeline:
+    MedicalResponsePipeline;
 
   constructor(apiKey?: string) {
 
     const key =
-      apiKey ||
-      process.env.OPENAI_API_KEY ||
-      "";
 
-    this.provider =
-      new OpenAIProvider(key);
+      apiKey
+
+      ||
+
+      process.env.OPENAI_API_KEY
+
+      ||
+
+      "";
 
     this.router =
       new MedicalRouter(key);
 
     this.stateUpdater =
       new MedicalStateUpdater(key);
-  }
 
-  // -----------------------------------
-  // COMPACT MEMORY
-  // -----------------------------------
-
-  private buildCompactMemory(
-    memory: MedicalMemory
-  ) {
-
-    return {
-
-      symptoms:
-        memory.symptoms.slice(-15),
-
-      medications:
-        memory.medications.slice(-10),
-
-      diagnoses:
-        memory.diagnoses.slice(-10),
-
-      allergies:
-        memory.allergies.slice(-10),
-
-      riskFactors:
-        memory.riskFactors.slice(-10),
-
-      extractedFacts:
-        memory.extractedFacts.slice(-20),
-
-      chronicConditions:
-        (memory.chronicConditions || [])
-          .slice(-10),
-
-      surgeries:
-        (memory.surgeries || [])
-          .slice(-10),
-
-      familyHistory:
-        (memory.familyHistory || [])
-          .slice(-10),
-
-      age:
-        memory.age,
-
-      sex:
-        memory.sex
-    };
-  }
-
-  // -----------------------------------
-  // MEMORY EXTRACTION
-  // -----------------------------------
-
-  private async extractMemory(
-    userInput: string,
-    memory: MedicalMemory
-  ): Promise<Partial<MedicalMemory>> {
-
-    try {
-
-      const compactMemory =
-        this.buildCompactMemory(memory);
-
-      const prompt = `
-${MEMORY_EXTRACTION_PROMPT}
-
-CURRENT MEMORY:
-${JSON.stringify(compactMemory)}
-
-NEW USER MESSAGE:
-${userInput.slice(0, 4000)}
-`;
-
-      const text =
-        await this.provider.generateRouterDecision(
-          prompt
-        );
-
-      const cleaned = text
-
-        .replace(/```json/g, "")
-
-        .replace(/```/g, "")
-
-        .trim();
-
-      return JSON.parse(cleaned);
-
-    } catch (error) {
-
-      console.error(
-        "Memory extraction error:",
-        error
+    this.profileUpdater =
+      new PatientProfileUpdater(
+        key
       );
 
-      return {};
-    }
+    this.responsePipeline =
+      new MedicalResponsePipeline(
+        key
+      );
   }
 
   // -----------------------------------
@@ -194,7 +140,52 @@ ${userInput.slice(0, 4000)}
       history.slice(-10);
 
     // -----------------------------------
-    // AI STATE UPDATE
+    // CURRENT PROFILE
+    // -----------------------------------
+
+    const currentProfile =
+
+      memory.patientProfile
+
+      ||
+
+      EMPTY_PATIENT_PROFILE;
+
+    // -----------------------------------
+    // PROFILE UPDATE
+    // -----------------------------------
+
+    const updatedProfile =
+
+      await this.profileUpdater
+        .updateProfile(
+
+          currentProfile,
+
+          safeUserInput
+        );
+
+    console.log(
+      "Updated patient profile:",
+      updatedProfile
+    );
+
+    // -----------------------------------
+    // UPDATE MEMORY
+    // -----------------------------------
+
+    const updatedMemory =
+
+      mergeMedicalMemory(
+        memory,
+        {
+          patientProfile:
+            updatedProfile
+        }
+      );
+
+    // -----------------------------------
+    // MEDICAL STATE UPDATE
     // -----------------------------------
 
     let medicalStateUpdates:
@@ -209,15 +200,10 @@ ${userInput.slice(0, 4000)}
 
             safeUserInput,
 
-            memory,
+            updatedMemory,
 
             lastAnalysis
           );
-
-      console.log(
-        "Medical state updates:",
-        medicalStateUpdates
-      );
 
     } catch (error) {
 
@@ -232,31 +218,33 @@ ${userInput.slice(0, 4000)}
     // -----------------------------------
 
     const interviewState =
+
       buildInterviewState(
         safeHistory,
-        memory
+        updatedMemory
       );
 
     // -----------------------------------
     // ROUTER
     // -----------------------------------
 
-    const decision: RouterDecision =
+    const decision:
+      RouterDecision =
+
       await this.router.decide(
+
         safeUserInput,
+
         safeHistory,
-        memory,
+
+        updatedMemory,
+
         lastAnalysis
       );
 
     console.log(
-      "Orchestrator decision:",
+      "Router decision:",
       decision
-    );
-
-    console.log(
-      "Interview state:",
-      interviewState
     );
 
     // -----------------------------------
@@ -270,229 +258,85 @@ ${userInput.slice(0, 4000)}
 
       &&
 
-      interviewState.shouldFinishInterview
+      interviewState
+        .shouldFinishInterview
 
     ) {
 
       decision.mode =
-        ResponseMode.FULL_MEDICAL_ANALYSIS;
+        ResponseMode
+          .FULL_MEDICAL_ANALYSIS;
 
       decision.interviewCompleted =
         true;
     }
 
     // -----------------------------------
-    // MEMORY EXTRACTION
-    // -----------------------------------
-
-    const extractedMemory =
-      await this.extractMemory(
-        safeUserInput,
-        memory
-      );
-
-    // -----------------------------------
-    // UPDATE MEMORY
-    // -----------------------------------
-
-    const updatedMemory =
-      mergeMedicalMemory(
-        memory,
-        extractedMemory
-      );
-
-    // -----------------------------------
     // DIAGNOSTIC STATE
     // -----------------------------------
 
     const diagnosticState =
+
       buildDiagnosticState(
         updatedMemory,
         interviewState
       );
 
-
     // -----------------------------------
     // SYSTEM PROMPT
     // -----------------------------------
 
-    let systemInstruction =
-      SYSTEM_PROMPT;
+    const {
 
-    let modelName:
-      "gpt-4o-mini" |
-      "gpt-4.1-mini" =
-      "gpt-4o-mini";
+      systemInstruction,
 
-    switch (decision.mode) {
+      modelName
 
-      case ResponseMode.FULL_MEDICAL_ANALYSIS:
+    } = buildSystemPrompt({
 
-        systemInstruction +=
-          "\n" + ANALYSIS_PROMPT;
+      mode:
+        decision.mode,
 
-        modelName =
-          "gpt-4.1-mini";
+      diagnosticState,
 
-        systemInstruction += `
-
-IMPORTANT:
-
-- Stop asking questions.
-- The interview is already sufficient.
-- Give a concise medical assessment.
-- Explain the MOST LIKELY cause.
-- Give practical recommendations.
-- Mention red flags ONLY if relevant.
-- Behave like an experienced doctor.
-
-IMPORTANT:
-Do NOT continue the interview.
-`;
-
-        break;
-
-      case ResponseMode.ANALYSIS_UPDATE_MODE:
-
-        systemInstruction +=
-          "\n" + UPDATE_ANALYSIS_PROMPT;
-
-        break;
-
-      case ResponseMode.CLARIFICATION_MODE:
-
-        systemInstruction +=
-          buildClarificationPrompt(
-            diagnosticState
-          )
-
-        break;
-
-      case ResponseMode.EMERGENCY_WARNING_MODE:
-
-        systemInstruction += `
-
-Emergency mode.
-
-Advise urgent medical attention.
-
-RETURN JSON ONLY.
-`;
-
-        break;
-    }
+      patientProfile:
+        updatedProfile
+    });
 
     // -----------------------------------
-    // MEMORY
+    // RESPONSE PIPELINE
     // -----------------------------------
 
-    const compactMemory =
-      this.buildCompactMemory(
-        updatedMemory
-      );
+    const {
 
-    systemInstruction += `
+      normalizedResponse,
 
-CURRENT MEDICAL MEMORY:
-${JSON.stringify(compactMemory)}
+      snapshot
 
-MEDICAL STATE UPDATES:
-${JSON.stringify(medicalStateUpdates)}
-`;
+    } = await this.responsePipeline
+      .generateResponse({
 
-    // -----------------------------------
-    // GENERATE
-    // -----------------------------------
-
-    const response =
-      await this.provider.generateText({
-
-        model: modelName,
+        model:
+          modelName,
 
         systemInstruction,
 
-        history: safeHistory,
+        history:
+          safeHistory,
 
-        userInput: safeUserInput,
+        userInput:
+          safeUserInput,
 
-        imageParts
+        imageParts,
+
+        decision,
+
+        diagnosticState,
+
+        interviewState,
+
+        medicalStateUpdates
       });
-
-    // -----------------------------------
-    // NORMALIZE
-    // -----------------------------------
-
-    const normalizedResponse =
-      normalizeMedicalResponse(
-        response,
-        decision
-      );
-
-    // -----------------------------------
-    // QUESTION VALIDATION
-    // -----------------------------------
-
-    if (
-
-      decision.mode ===
-      ResponseMode.CLARIFICATION_MODE
-
-      &&
-
-      !normalizedResponse.interviewCompleted
-
-    ) {
-
-      const validation =
-
-        validateGeneratedQuestion(
-
-          normalizedResponse.summary,
-
-          diagnosticState.alreadyCovered
-        );
-
-      console.log(
-        "Question validation:",
-        validation
-      );
-
-      // -----------------------------------
-      // FORCE STOP ON REPEATS
-      // -----------------------------------
-
-      if (!validation.valid) {
-
-        normalizedResponse.summary =
-          "Наиболее вероятно речь идет о нетяжелой проблеме, связанной с описанными симптомами. Если состояние ухудшается, появляется сильная боль, отек, онемение или другие тревожные симптомы — обратитесь к врачу.";
-
-        normalizedResponse.interviewCompleted =
-          true;
-
-        normalizedResponse.quickReplies = [];
-
-        console.log(
-          "Repeated question blocked"
-        );
-      }
-    }
-
-    // -----------------------------------
-    // SNAPSHOT
-    // -----------------------------------
-
-    const snapshot = {
-
-      ...normalizedResponse,
-
-      confidence:
-        interviewState.confidence,
-
-      timestamp:
-        Date.now(),
-
-      medicalStateUpdates
-    };
 
     // -----------------------------------
     // FINAL
@@ -508,7 +352,9 @@ ${JSON.stringify(medicalStateUpdates)}
         ...decision,
 
         interviewCompleted:
-          normalizedResponse.interviewCompleted
+
+          normalizedResponse
+            .interviewCompleted
       },
 
       updatedMemory,
@@ -517,7 +363,8 @@ ${JSON.stringify(medicalStateUpdates)}
         snapshot,
 
       quickReplies:
-        normalizedResponse.quickReplies,
+        normalizedResponse
+          .quickReplies,
 
       structuredData:
         normalizedResponse,

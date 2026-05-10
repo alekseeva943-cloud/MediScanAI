@@ -21,199 +21,254 @@
 // - зацикливание,
 // - useless interview loops.
 
-import {
-    classifyQuestionTopic
-} from "./questionTopics.js";
-
 import type {
-    MedicalMemory
+  MedicalMemory
 } from "../types/index.js";
 
 import type {
-    InterviewState
+  InterviewState
 } from "./buildInterviewState.js";
+
+import type {
+  PatientProfile
+} from "../profile/patientProfile.js";
 
 export interface DiagnosticState {
 
-    primaryComplaint: string;
+  primaryComplaint: string;
 
-    confirmedFindings: string[];
+  confirmedFindings: string[];
 
-    alreadyCovered: string[];
+  alreadyCovered: string[];
 
-    missingInformation: string[];
+  missingInformation: string[];
 
-    redFlags: string[];
+  redFlags: string[];
 }
 
-function detectPrimaryComplaint(
-    memory: MedicalMemory
-): string {
-
-    const symptoms =
-        memory.symptoms || [];
-
-    if (!symptoms.length) {
-        return "unknown complaint";
-    }
-
-    return symptoms[0];
-}
-
-function detectMissingInformation(
-    memory: MedicalMemory
+function buildConfirmedFindings(
+  profile: PatientProfile
 ): string[] {
 
-    const joined =
-        (memory.extractedFacts || [])
-            .join(" ")
-            .toLowerCase();
+  const findings: string[] = [];
 
-    const missing: string[] = [];
+  // -----------------------------------
+  // MAIN COMPLAINT
+  // -----------------------------------
 
-    // -----------------------------------
-    // TRAUMA
-    // -----------------------------------
+  if (
+    profile.mainComplaint
+  ) {
 
-    const traumaDetected =
+    findings.push(
+      `Главная жалоба: ${profile.mainComplaint}`
+    );
+  }
 
-        joined.includes("удар")
-        ||
-        joined.includes("упал")
-        ||
-        joined.includes("травм");
+  // -----------------------------------
+  // PAIN
+  // -----------------------------------
 
-    if (traumaDetected) {
+  if (
+    profile.pain.location
+  ) {
 
-        if (
-            !joined.includes("отек")
-            &&
-            !joined.includes("опух")
-        ) {
+    findings.push(
+      `Локализация боли: ${profile.pain.location}`
+    );
+  }
 
-            missing.push(
-                "наличие отека"
-            );
-        }
+  if (
+    profile.pain.character
+  ) {
 
-        if (
-            !joined.includes("синяк")
-            &&
-            !joined.includes("гематом")
-        ) {
+    findings.push(
+      `Характер боли: ${profile.pain.character}`
+    );
+  }
 
-            missing.push(
-                "наличие синяка"
-            );
-        }
+  if (
+    profile.pain.duration
+  ) {
 
-        if (
-            !joined.includes("онем")
-        ) {
+    findings.push(
+      `Длительность: ${profile.pain.duration}`
+    );
+  }
 
-            missing.push(
-                "наличие онемения"
-            );
-        }
+  // -----------------------------------
+  // TRAUMA
+  // -----------------------------------
 
-        if (
-            !joined.includes("деформац")
-        ) {
+  if (
+    profile.trauma.exists
+  ) {
 
-            missing.push(
-                "наличие деформации"
-            );
-        }
-    }
+    findings.push(
+      "Была травма"
+    );
+  }
 
-    return missing;
+  if (
+    profile.trauma.mechanism
+  ) {
+
+    findings.push(
+      `Механизм травмы: ${profile.trauma.mechanism}`
+    );
+  }
+
+  // -----------------------------------
+  // LIMITATIONS
+  // -----------------------------------
+
+  findings.push(
+    ...profile.functionalLimitations
+  );
+
+  // -----------------------------------
+  // SYMPTOMS
+  // -----------------------------------
+
+  findings.push(
+    ...profile.symptoms
+  );
+
+  return findings;
 }
 
-function detectRedFlags(
-    memory: MedicalMemory
+function buildMissingInformation(
+  profile: PatientProfile
 ): string[] {
 
-    const joined =
-        (memory.extractedFacts || [])
-            .join(" ")
-            .toLowerCase();
+  const missing: string[] = [];
 
-    const redFlags: string[] = [];
+  // -----------------------------------
+  // PAIN
+  // -----------------------------------
+
+  if (
+    !profile.pain.character
+  ) {
+
+    missing.push(
+      "характер боли"
+    );
+  }
+
+  if (
+    !profile.pain.location
+  ) {
+
+    missing.push(
+      "локализация боли"
+    );
+  }
+
+  // -----------------------------------
+  // TRAUMA
+  // -----------------------------------
+
+  if (
+
+    profile.mainComplaint
+      .includes("боль")
+
+    &&
+
+    !profile.trauma.exists
+
+  ) {
+
+    missing.push(
+      "наличие травмы"
+    );
+  }
+
+  // -----------------------------------
+  // SHOULDER / ARM
+  // -----------------------------------
+
+  const shoulderCase =
+
+    profile.mainComplaint
+      .toLowerCase()
+      .includes("плеч");
+
+  if (shoulderCase) {
 
     if (
-        joined.includes("не могу дышать")
-        ||
-        joined.includes("удуш")
+      !profile.symptoms.includes(
+        "отек"
+      )
     ) {
 
-        redFlags.push(
-            "нарушение дыхания"
-        );
+      missing.push(
+        "наличие отека"
+      );
     }
 
     if (
-        joined.includes("кров")
+      !profile.symptoms.includes(
+        "онемение"
+      )
     ) {
 
-        redFlags.push(
-            "кровотечение"
-        );
+      missing.push(
+        "наличие онемения"
+      );
     }
+  }
 
-    if (
-        joined.includes("потеря сознания")
-    ) {
-
-        redFlags.push(
-            "потеря сознания"
-        );
-    }
-
-    if (
-        joined.includes("сильная боль")
-    ) {
-
-        redFlags.push(
-            "выраженная боль"
-        );
-    }
-
-    return redFlags;
+  return missing;
 }
 
 export function buildDiagnosticState(
-    memory: MedicalMemory,
-    interviewState: InterviewState
+  memory: MedicalMemory,
+  interviewState: InterviewState
 ): DiagnosticState {
 
-    const confirmedFindings =
-        (memory.extractedFacts || [])
-            .slice(-15);
+  const profile =
+
+    memory.patientProfile;
+
+  if (!profile) {
 
     return {
 
-        primaryComplaint:
-            detectPrimaryComplaint(
-                memory
-            ),
+      primaryComplaint:
+        "unknown complaint",
 
-        confirmedFindings,
+      confirmedFindings: [],
 
-        alreadyCovered:
+      alreadyCovered:
+        interviewState.previousQuestions,
 
-            interviewState.previousQuestions
-                .map((q) =>
-                    classifyQuestionTopic(q)
-                ),
+      missingInformation: [],
 
-        missingInformation:
-            detectMissingInformation(
-                memory
-            ),
-
-        redFlags:
-            detectRedFlags(
-                memory
-            )
+      redFlags: []
     };
+  }
+
+  return {
+
+    primaryComplaint:
+      profile.mainComplaint,
+
+    confirmedFindings:
+      buildConfirmedFindings(
+        profile
+      ),
+
+    alreadyCovered:
+      profile.resolvedTopics,
+
+    missingInformation:
+      buildMissingInformation(
+        profile
+      ),
+
+    redFlags:
+      profile.redFlags
+  };
 }

@@ -1,5 +1,9 @@
 // src/ai/types/index.ts
 
+import type {
+  PatientProfile
+} from "../profile/patientProfile.js";
+
 // -----------------------------------------------------
 // USER INTENT
 // -----------------------------------------------------
@@ -137,9 +141,17 @@ export interface MedicalMemory {
 
   sex?: string;
 
-  // NEW
+  // -----------------------------------
+  // LEGACY ACTIVE CASE
+  // -----------------------------------
 
   activeCase?: ActiveMedicalCase;
+
+  // -----------------------------------
+  // NEW STRUCTURED PATIENT PROFILE
+  // -----------------------------------
+
+  patientProfile?: PatientProfile;
 }
 
 // -----------------------------------------------------

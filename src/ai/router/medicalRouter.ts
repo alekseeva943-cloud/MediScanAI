@@ -1,28 +1,58 @@
 // src/ai/router/medicalRouter.ts
 
-import { OpenAIProvider } from "../providers/openaiProvider.js";
+// Medical router.
+//
+// Этот модуль НЕ ставит диагноз.
+//
+// Он решает:
+//
+// - продолжать ли интервью
+// - достаточно ли информации
+// - есть ли emergency
+// - нужен ли анализ
+//
+// Router теперь работает
+// через structured patient profile.
+
+import { OpenAIProvider }
+  from "../providers/openaiProvider.js";
 
 import {
+
   UserIntent,
+
   ResponseMode
+
 } from "../types/index.js";
 
 import type {
+
   RouterDecision,
+
   MedicalMemory,
+
   AnalysisSnapshot
+
 } from "../types/index.js";
 
 export class MedicalRouter {
 
-  private provider: OpenAIProvider;
+  private provider:
+    OpenAIProvider;
 
   constructor(apiKey?: string) {
 
     const key =
-      apiKey ||
-      process.env.OPENAI_API_KEY ||
-      '';
+
+      apiKey
+
+      ||
+
+      process.env.OPENAI_API_KEY
+
+      ||
+
+      "";
 
     this.provider =
       new OpenAIProvider(key);
@@ -43,26 +73,16 @@ export class MedicalRouter {
       currentMessage:
         userInput.slice(0, 1500),
 
-      symptoms:
-        memory.symptoms.slice(-10),
-
-      medications:
-        memory.medications.slice(-10),
-
-      diagnoses:
-        memory.diagnoses.slice(-10),
-
-      extractedFacts:
-        memory.extractedFacts.slice(-20),
-
-      uploadedDocuments:
-        memory.uploadedDocuments.slice(-5),
+      patientProfile:
+        memory.patientProfile,
 
       hasPreviousAnalysis:
         !!lastAnalysis,
 
       hasMedicalFiles:
-        memory.uploadedDocuments.length > 0
+
+        memory.uploadedDocuments
+          .length > 0
     };
   }
 
@@ -80,115 +100,180 @@ export class MedicalRouter {
     try {
 
       const compact =
+
         this.buildCompactContext(
+
           userInput,
+
           memory,
+
           lastAnalysis
         );
 
       const shortHistory =
+
         history
-          .slice(-8)
+
+          .slice(-6)
+
           .map((m: any) => ({
-            role: m.role,
+
+            role:
+              m.role,
+
             content:
+
               String(m.content)
-                .slice(0, 500)
+                .slice(0, 300)
           }));
 
       const prompt = `
-You are an advanced AI medical router.
+
+You are an advanced medical routing AI.
+
+You DO NOT diagnose diseases.
+
+You ONLY decide:
+
+- continue interview
+- finish interview
+- emergency or not
+- enough information or not
 
 IMPORTANT:
-You are NOT diagnosing diseases.
 
-You decide:
-- does the AI need clarification?
-- is there enough information?
-- is this emergency?
-- should interview continue?
+Use patientProfile
+as the main source of truth.
 
-CRITICAL RULES:
+Do NOT ignore already known data.
 
-- Think like a premium medical assistant.
-- Interviews must feel natural.
-- Questions must adapt dynamically.
-- Avoid robotic behavior.
-- Avoid fixed questionnaires.
-- Never ask many questions at once.
+-----------------------------------
+INTERVIEW RULES
+-----------------------------------
 
-EMERGENCY CONDITIONS:
+Continue interview ONLY if:
+
+- critical information is missing
+- dangerous conditions not excluded
+- diagnosis direction still unclear
+
+Finish interview if:
+
+- symptoms already understandable
+- probable scenario obvious
+- enough data collected
+- low-risk situation likely
+
+-----------------------------------
+IMPORTANT
+-----------------------------------
+
+Avoid over-questioning.
+
+Avoid robotic interviews.
+
+Avoid repeating already known topics.
+
+Prefer common explanations first.
+
+Example:
+
+- shoulder pain after удар
+→ likely minor trauma first
+
+- burning after spicy food
+→ likely irritation first
+
+Do NOT aggressively search
+for rare diseases.
+
+-----------------------------------
+EMERGENCY RED FLAGS
+-----------------------------------
+
 - chest pain
 - breathing difficulty
 - stroke symptoms
 - loss of consciousness
-- severe allergic reaction
-- suicidal intent
 - severe bleeding
+- suicidal intent
+- severe allergic reaction
 
-AVAILABLE MODES:
+-----------------------------------
+CURRENT CONTEXT
+-----------------------------------
 
-- CASUAL_CONVERSATION
-- CLARIFICATION_MODE
-- FULL_MEDICAL_ANALYSIS
-- ANALYSIS_UPDATE_MODE
-- EMERGENCY_WARNING_MODE
+${JSON.stringify(
+  compact,
+  null,
+  2
+)}
 
-WHEN TO USE CLARIFICATION_MODE:
-- symptoms unclear
-- insufficient data
-- interview should continue
+-----------------------------------
+RECENT CHAT
+-----------------------------------
 
-WHEN TO USE FULL_MEDICAL_ANALYSIS:
-- enough medically relevant data exists
-- symptoms sufficiently clarified
-- user uploaded tests/images
-- enough context for preliminary analysis
+${JSON.stringify(
+  shortHistory,
+  null,
+  2
+)}
 
-CURRENT CONTEXT:
-${JSON.stringify(compact)}
-
-RECENT CHAT:
-${JSON.stringify(shortHistory)}
-
-RETURN ONLY VALID JSON.
+-----------------------------------
+RETURN JSON ONLY
+-----------------------------------
 
 FORMAT:
+
 {
   "intent": "SYMPTOM_ANALYSIS",
+
   "mode": "CLARIFICATION_MODE",
+
   "needsClarification": true,
+
   "clarificationQuestions": [
-    "duration",
-    "severity",
-    "swelling"
+    "swelling",
+    "numbness"
   ],
+
   "emergencyLevel": "low",
+
   "isUpdateToExisting": false,
+
   "question": "question here",
+
   "quickReplies": [
-    "option 1",
-    "option 2",
+    "Да",
+    "Нет",
     "Пропустить"
   ],
+
   "interviewCompleted": false
 }
 `;
 
       const text =
-        await this.provider.generateRouterDecision(
-          prompt
-        );
+
+        await this.provider
+          .generateRouterDecision(
+            prompt
+          );
 
       console.log(
         "RAW ROUTER RESPONSE:",
         text
       );
 
-      const cleaned = text
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
+      const cleaned =
+
+        text
+
+          .replace(/```json/g, "")
+
+          .replace(/```/g, "")
+
+          .trim();
 
       const parsed =
         JSON.parse(cleaned);
@@ -196,34 +281,68 @@ FORMAT:
       return {
 
         intent:
-          parsed.intent ||
-          UserIntent.SYMPTOM_ANALYSIS,
+
+          parsed.intent
+
+          ||
+
+          UserIntent
+            .SYMPTOM_ANALYSIS,
 
         mode:
-          parsed.mode ||
-          ResponseMode.CLARIFICATION_MODE,
+
+          parsed.mode
+
+          ||
+
+          ResponseMode
+            .CLARIFICATION_MODE,
 
         needsClarification:
-          parsed.needsClarification ?? true,
+
+          parsed
+            .needsClarification
+
+          ??
+
+          true,
 
         clarificationQuestions:
 
           Array.isArray(
-            parsed.clarificationQuestions
+            parsed
+              .clarificationQuestions
           )
 
-            ? parsed.clarificationQuestions
+            ? parsed
+                .clarificationQuestions
 
             : [],
 
         emergencyLevel:
-          parsed.emergencyLevel || 'low',
+
+          parsed.emergencyLevel
+
+          ||
+
+          "low",
 
         isUpdateToExisting:
-          parsed.isUpdateToExisting || false,
+
+          parsed
+            .isUpdateToExisting
+
+          ||
+
+          false,
 
         question:
-          parsed.question || "",
+
+          parsed.question
+
+          ||
+
+          "",
 
         quickReplies:
 
@@ -233,10 +352,18 @@ FORMAT:
 
             ? parsed.quickReplies
 
-            : ["Пропустить"],
+            : [
+                "Пропустить"
+              ],
 
         interviewCompleted:
-          parsed.interviewCompleted || false
+
+          parsed
+            .interviewCompleted
+
+          ||
+
+          false
       };
 
     } catch (error) {
@@ -249,20 +376,25 @@ FORMAT:
       return {
 
         intent:
-          UserIntent.CASUAL_CHAT,
+          UserIntent
+            .SYMPTOM_ANALYSIS,
 
         mode:
-          ResponseMode.CLARIFICATION_MODE,
+          ResponseMode
+            .CLARIFICATION_MODE,
 
-        needsClarification: true,
+        needsClarification:
+          true,
 
         clarificationQuestions: [
           "details"
         ],
 
-        emergencyLevel: 'low',
+        emergencyLevel:
+          "low",
 
-        isUpdateToExisting: false,
+        isUpdateToExisting:
+          false,
 
         question:
           "Расскажите подробнее о симптомах.",
@@ -278,7 +410,8 @@ FORMAT:
           "Пропустить"
         ],
 
-        interviewCompleted: false
+        interviewCompleted:
+          false
       };
     }
   }
