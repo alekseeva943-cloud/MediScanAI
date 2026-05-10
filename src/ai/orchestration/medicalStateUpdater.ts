@@ -54,14 +54,14 @@ You are a Medical State Extraction AI.
 
 Your ONLY task:
 
-Extract structured medical data updates.
+Extract structured medical state updates.
 
 You DO NOT answer the user.
 You DO NOT explain anything.
 You DO NOT give recommendations.
 You DO NOT continue the interview.
 
-You ONLY update structured medical state.
+You ONLY update structured state.
 
 --------------------------------------------------
 
@@ -83,37 +83,44 @@ ${userInput}
 
 --------------------------------------------------
 
-RULES:
+IMPORTANT RULES:
 
-1. Extract ONLY medically relevant facts.
+1. Extract ONLY medically relevant information.
 
 2. Separate:
 - permanent patient data
-- current case data
+- current medical case
 
 3. Permanent profile includes:
 - allergies
 - chronic diseases
 - medications
 - surgeries
+- family history
 - risk factors
 - age
 - sex
 
-4. Current case includes:
+4. Current medical case includes:
 - symptoms
+- denied symptoms
 - triggers
 - red flags
-- probable cause
-- current risks
+- probable causes
+- already asked questions
 
-5. Do NOT hallucinate.
+5. Never invent diagnoses.
 
-6. Do NOT invent diagnoses.
+6. Never hallucinate.
 
-7. Keep arrays short and clean.
+7. Never remove medically relevant facts
+unless user explicitly contradicts them.
 
-8. Return JSON ONLY.
+8. Keep arrays compact and clean.
+
+9. Maximum 3 possible conditions.
+
+10. Return JSON ONLY.
 
 --------------------------------------------------
 
@@ -135,19 +142,29 @@ JSON FORMAT:
 
     "chiefComplaint": "",
 
+    "probableCause": "",
+
     "confirmedSymptoms": [],
 
-    "excludedSymptoms": [],
+    "deniedSymptoms": [],
+
+    "resolvedSymptoms": [],
 
     "detectedTriggers": [],
 
     "possibleConditions": [],
 
+    "excludedConditions": [],
+
     "redFlags": [],
+
+    "alreadyAskedQuestions": [],
 
     "dangerLevel": "low",
 
-    "aiSummary": ""
+    "aiSummary": "",
+
+    "interviewCompleted": false
   }
 }
 `;
@@ -380,17 +397,31 @@ JSON FORMAT:
 
             : [],
 
-        excludedSymptoms:
+        deniedSymptoms:
 
           Array.isArray(
             parsed
               ?.medicalCaseUpdates
-              ?.excludedSymptoms
+              ?.deniedSymptoms
           )
 
             ? parsed
                 .medicalCaseUpdates
-                .excludedSymptoms
+                .deniedSymptoms
+
+            : [],
+
+        resolvedSymptoms:
+
+          Array.isArray(
+            parsed
+              ?.medicalCaseUpdates
+              ?.resolvedSymptoms
+          )
+
+            ? parsed
+                .medicalCaseUpdates
+                .resolvedSymptoms
 
             : [],
 
@@ -422,6 +453,20 @@ JSON FORMAT:
 
             : [],
 
+        excludedConditions:
+
+          Array.isArray(
+            parsed
+              ?.medicalCaseUpdates
+              ?.excludedConditions
+          )
+
+            ? parsed
+                .medicalCaseUpdates
+                .excludedConditions
+
+            : [],
+
         redFlags:
 
           Array.isArray(
@@ -436,31 +481,17 @@ JSON FORMAT:
 
             : [],
 
-        followUpQuestions:
+        alreadyAskedQuestions:
 
           Array.isArray(
             parsed
               ?.medicalCaseUpdates
-              ?.followUpQuestions
+              ?.alreadyAskedQuestions
           )
 
             ? parsed
                 .medicalCaseUpdates
-                .followUpQuestions
-
-            : [],
-
-        recommendations:
-
-          Array.isArray(
-            parsed
-              ?.medicalCaseUpdates
-              ?.recommendations
-          )
-
-            ? parsed
-                .medicalCaseUpdates
-                .recommendations
+                .alreadyAskedQuestions
 
             : [],
 

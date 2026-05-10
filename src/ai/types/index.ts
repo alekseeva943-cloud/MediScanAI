@@ -70,11 +70,46 @@ export interface RouterDecision {
 }
 
 // -----------------------------------------------------
-// LEGACY MEMORY
+// ACTIVE MEDICAL CASE
 // -----------------------------------------------------
 
-// Временно сохраняем.
-// Потом постепенно уберем.
+export interface ActiveMedicalCase {
+
+  chiefComplaint?: string;
+
+  probableCause?: string;
+
+  confirmedSymptoms?: string[];
+
+  deniedSymptoms?: string[];
+
+  resolvedSymptoms?: string[];
+
+  detectedTriggers?: string[];
+
+  possibleConditions?: string[];
+
+  excludedConditions?: string[];
+
+  recommendations?: string[];
+
+  redFlags?: string[];
+
+  alreadyAskedQuestions?: string[];
+
+  dangerLevel?:
+    | "low"
+    | "medium"
+    | "high";
+
+  aiSummary?: string;
+
+  interviewCompleted?: boolean;
+}
+
+// -----------------------------------------------------
+// LEGACY MEMORY
+// -----------------------------------------------------
 
 export interface MedicalMemory {
 
@@ -101,6 +136,10 @@ export interface MedicalMemory {
   age?: string;
 
   sex?: string;
+
+  // NEW
+
+  activeCase?: ActiveMedicalCase;
 }
 
 // -----------------------------------------------------
@@ -145,7 +184,9 @@ export interface MedicalCaseUpdate {
 
   confirmedSymptoms?: string[];
 
-  excludedSymptoms?: string[];
+  deniedSymptoms?: string[];
+
+  resolvedSymptoms?: string[];
 
   detectedTriggers?: string[];
 
@@ -157,7 +198,7 @@ export interface MedicalCaseUpdate {
 
   redFlags?: string[];
 
-  followUpQuestions?: string[];
+  alreadyAskedQuestions?: string[];
 
   dangerLevel?:
     | "low"
