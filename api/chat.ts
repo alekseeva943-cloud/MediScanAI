@@ -5,14 +5,20 @@ import type {
   VercelResponse
 } from '@vercel/node';
 
+function containsAny(
+  text: string,
+  words: string[]
+) {
+
+  return words.some(word =>
+    text.includes(word)
+  );
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-
-  // -----------------------------------
-  // METHOD CHECK
-  // -----------------------------------
 
   if (req.method !== 'POST') {
 
@@ -30,10 +36,6 @@ export default async function handler(
       lastAnalysis
     } = req.body;
 
-    // -----------------------------------
-    // IMPORT ORCHESTRATOR
-    // -----------------------------------
-
     const {
       MedicalOrchestrator
     } = await import(
@@ -42,10 +44,6 @@ export default async function handler(
 
     const orchestrator =
       new MedicalOrchestrator();
-
-    // -----------------------------------
-    // SAFE MESSAGES
-    // -----------------------------------
 
     const safeMessages =
       Array.isArray(messages)
@@ -58,7 +56,7 @@ export default async function handler(
       ];
 
     const history =
-      safeMessages.slice(-8, -1);
+      safeMessages.slice(-12, -1);
 
     if (!lastMessage) {
 
@@ -66,6 +64,21 @@ export default async function handler(
         error:
           'Нет сообщения пользователя'
       });
+    }
+
+    // -----------------------------------
+    // USER INPUT
+    // -----------------------------------
+
+    let userInput = '';
+
+    if (
+      typeof lastMessage.content
+      === 'string'
+    ) {
+
+      userInput =
+        lastMessage.content;
     }
 
     // -----------------------------------
@@ -127,42 +140,7 @@ export default async function handler(
     }
 
     // -----------------------------------
-    // USER INPUT EXTRACTION
-    // -----------------------------------
-
-    let userInput = "";
-
-    if (
-      typeof lastMessage.content
-      === 'string'
-    ) {
-
-      userInput =
-        lastMessage.content;
-
-    } else if (
-      Array.isArray(
-        lastMessage.content
-      )
-    ) {
-
-      const textPart =
-        lastMessage.content.find(
-          (p: any) =>
-
-            p.type === 'text'
-
-            ||
-
-            p.type === 'input_text'
-        );
-
-      userInput =
-        textPart?.text || "";
-    }
-
-    // -----------------------------------
-    // PROCESS REQUEST
+    // PROCESS AI
     // -----------------------------------
 
     const result =
@@ -183,7 +161,6 @@ export default async function handler(
           riskFactors: [],
           uploadedDocuments: [],
           extractedFacts: [],
-
           chronicConditions: [],
           surgeries: [],
           familyHistory: []
@@ -193,7 +170,7 @@ export default async function handler(
       );
 
     // -----------------------------------
-    // SAFE AI RESPONSE PARSING
+    // SAFE JSON PARSING
     // -----------------------------------
 
     let parsedResponse: any = null;
@@ -218,11 +195,11 @@ export default async function handler(
           );
       }
 
-    } catch (parseError) {
+    } catch (err) {
 
       console.error(
         'JSON parse failed:',
-        parseError
+        err
       );
     }
 
@@ -230,7 +207,7 @@ export default async function handler(
     // FINAL TEXT
     // -----------------------------------
 
-    const finalText =
+    let finalText =
 
       parsedResponse?.text
 
@@ -243,7 +220,7 @@ export default async function handler(
       'Не удалось сформировать ответ';
 
     // -----------------------------------
-    // FINAL QUICK REPLIES
+    // QUICK REPLIES
     // -----------------------------------
 
     let finalQuickReplies: string[] = [];
@@ -273,7 +250,7 @@ export default async function handler(
     }
 
     // -----------------------------------
-    // ALWAYS ADD SKIP BUTTON
+    // ALWAYS ADD SKIP
     // -----------------------------------
 
     if (
@@ -294,10 +271,121 @@ export default async function handler(
     }
 
     // -----------------------------------
-    // INTERVIEW COMPLETED
+    // HISTORY TEXT
     // -----------------------------------
 
-    const interviewCompleted =
+    const fullConversation =
+
+      safeMessages
+        .map((m: any) =>
+
+          typeof m.content === 'string'
+
+            ? m.content
+
+            : JSON.stringify(m.content)
+        )
+        .join(' ')
+        .toLowerCase();
+
+    // -----------------------------------
+    // RED FLAGS
+    // -----------------------------------
+
+    const hasRedFlags =
+
+      containsAny(
+        fullConversation,
+        [
+
+          'кровь',
+
+          'сильная боль',
+
+          'температура',
+
+          'рвота',
+
+          'потеря сознания',
+
+          'черный стул',
+
+          'не могу ходить',
+
+          'сильный отек',
+
+          'гной'
+        ]
+      );
+
+    // -----------------------------------
+    // SAFE TRIGGER DETECTION
+    // -----------------------------------
+
+    const spicyFoodDetected =
+
+      containsAny(
+        fullConversation,
+        [
+
+          'остр',
+
+          'халапеньо',
+
+          'шаурм',
+
+          'перец'
+        ]
+      );
+
+    const repeatedPatternDetected =
+
+      containsAny(
+        fullConversation,
+        [
+
+          'каждый раз',
+
+          'раньше было',
+
+          'повторяется'
+        ]
+      );
+
+    const mildCaseDetected =
+
+      containsAny(
+        fullConversation,
+        [
+
+          'только жжение',
+
+          'нет других симптомов',
+
+          'нет температуры',
+
+          'все нормально'
+        ]
+      );
+
+    // -----------------------------------
+    // QUESTION LOOP DETECTION
+    // -----------------------------------
+
+    const assistantQuestions =
+      safeMessages.filter(
+        (m: any) =>
+          m.role === 'assistant'
+      );
+
+    const clarificationCount =
+      assistantQuestions.length;
+
+    // -----------------------------------
+    // AUTO FINISH LOGIC
+    // -----------------------------------
+
+    let interviewCompleted =
 
       parsedResponse
         ?.interview_completed
@@ -310,6 +398,76 @@ export default async function handler(
       ||
 
       false;
+
+    const shouldForceFinish =
+
+      !hasRedFlags
+
+      &&
+
+      spicyFoodDetected
+
+      &&
+
+      (
+        repeatedPatternDetected
+        ||
+
+        mildCaseDetected
+        ||
+
+        clarificationCount >= 6
+      );
+
+    // -----------------------------------
+    // FORCE FINISH
+    // -----------------------------------
+
+    if (
+
+      shouldForceFinish
+
+      &&
+
+      !interviewCompleted
+
+    ) {
+
+      interviewCompleted = true;
+
+      finalText =
+
+        'Наиболее вероятно, это раздражение слизистой и кожи после острой пищи. '
+
+        +
+
+        'Серьезных опасных признаков сейчас не видно. '
+
+        +
+
+        'Обычно такое состояние проходит самостоятельно в течение 1–2 дней. '
+
+        +
+
+        'Постарайтесь временно исключить острую пищу, используйте мягкую туалетную бумагу и избегайте дополнительного раздражения области. '
+
+        +
+
+        'Если появятся кровь, сильная боль, температура или симптомы усилятся — обратитесь к врачу.';
+
+      finalQuickReplies = [
+
+        '📄 Создать отчет',
+
+        '🩻 Загрузить МРТ',
+
+        '🧪 Прикрепить анализы',
+
+        '📷 Загрузить фото',
+
+        '➕ Добавить симптомы'
+      ];
+    }
 
     // -----------------------------------
     // FINAL ACTIONS
@@ -354,13 +512,22 @@ export default async function handler(
 
         mode:
 
-          parsedResponse
-            ?.render_mode
+          interviewCompleted
 
-          ||
+            ? 'FULL_MEDICAL_ANALYSIS'
 
-          result?.decision
-            ?.mode
+            : (
+
+              parsedResponse
+                ?.render_mode
+
+              ||
+
+              result?.decision
+                ?.mode
+            ),
+
+        interviewCompleted
       },
 
       quickReplies:
@@ -368,10 +535,6 @@ export default async function handler(
 
       updatedMemory:
         result?.updatedMemory || null,
-
-      // ВАЖНО:
-      // возвращаем НОВЫЙ analysis,
-      // а не старый из req.body
 
       lastAnalysis:
         result?.lastAnalysis || null,
