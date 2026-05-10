@@ -6,6 +6,31 @@ import type {
   Message
 } from '../types';
 
+interface MedicalInterviewState {
+
+  mainComplaint: string;
+
+  currentSymptoms: string[];
+
+  confirmedSymptoms: string[];
+
+  deniedSymptoms: string[];
+
+  possibleTriggers: string[];
+
+  excludedConditions: string[];
+
+  askedQuestions: string[];
+
+  answeredFacts: string[];
+
+  currentHypotheses: string[];
+
+  timeline: string[];
+
+  interviewCompleted: boolean;
+}
+
 interface ChatStore {
 
   messages: Message[];
@@ -20,9 +45,8 @@ interface ChatStore {
 
   lastAnalysis: any;
 
-  // -----------------------------------
-  // ACTIONS
-  // -----------------------------------
+  medicalInterviewState:
+    MedicalInterviewState;
 
   addMessage:
     (message: Message) => void;
@@ -52,14 +76,59 @@ interface ChatStore {
 
   setLastAnalysis:
     (analysis: any) => void;
+
+  updateInterviewState:
+    (
+      updates: Partial<MedicalInterviewState>
+    ) => void;
+
+  addAskedQuestion:
+    (question: string) => void;
+
+  addConfirmedSymptom:
+    (symptom: string) => void;
+
+  addDeniedSymptom:
+    (symptom: string) => void;
+
+  addPossibleTrigger:
+    (trigger: string) => void;
+
+  addAnsweredFact:
+    (fact: string) => void;
+
+  resetInterviewState:
+    () => void;
 }
+
+const initialInterviewState:
+  MedicalInterviewState = {
+
+  mainComplaint: '',
+
+  currentSymptoms: [],
+
+  confirmedSymptoms: [],
+
+  deniedSymptoms: [],
+
+  possibleTriggers: [],
+
+  excludedConditions: [],
+
+  askedQuestions: [],
+
+  answeredFacts: [],
+
+  currentHypotheses: [],
+
+  timeline: [],
+
+  interviewCompleted: false
+};
 
 export const useChatStore =
   create<ChatStore>((set) => ({
-
-    // -----------------------------------
-    // STATE
-    // -----------------------------------
 
     messages: [],
 
@@ -94,9 +163,8 @@ export const useChatStore =
 
     lastAnalysis: null,
 
-    // -----------------------------------
-    // ADD MESSAGE
-    // -----------------------------------
+    medicalInterviewState:
+      initialInterviewState,
 
     addMessage:
       (message) =>
@@ -108,10 +176,6 @@ export const useChatStore =
             message
           ]
         })),
-
-    // -----------------------------------
-    // UPDATE MESSAGE
-    // -----------------------------------
 
     updateMessage:
       (id, updates) =>
@@ -132,10 +196,6 @@ export const useChatStore =
             )
         })),
 
-    // -----------------------------------
-    // CLEAR HISTORY
-    // -----------------------------------
-
     clearHistory:
       () =>
 
@@ -148,6 +208,9 @@ export const useChatStore =
           error: null,
 
           status: null,
+
+          medicalInterviewState:
+            initialInterviewState,
 
           medicalMemory: {
 
@@ -173,10 +236,6 @@ export const useChatStore =
           }
         }),
 
-    // -----------------------------------
-    // LOADING
-    // -----------------------------------
-
     setLoading:
       (
         loading,
@@ -190,20 +249,12 @@ export const useChatStore =
           status
         }),
 
-    // -----------------------------------
-    // ERROR
-    // -----------------------------------
-
     setError:
       (error) =>
 
         set({
           error
         }),
-
-    // -----------------------------------
-    // MEMORY
-    // -----------------------------------
 
     setMedicalMemory:
       (medicalMemory) =>
@@ -212,14 +263,142 @@ export const useChatStore =
           medicalMemory
         }),
 
-    // -----------------------------------
-    // ANALYSIS
-    // -----------------------------------
-
     setLastAnalysis:
       (lastAnalysis) =>
 
         set({
           lastAnalysis
+        }),
+
+    updateInterviewState:
+      (updates) =>
+
+        set((state) => ({
+
+          medicalInterviewState: {
+
+            ...state.medicalInterviewState,
+
+            ...updates
+          }
+        })),
+
+    addAskedQuestion:
+      (question) =>
+
+        set((state) => ({
+
+          medicalInterviewState: {
+
+            ...state.medicalInterviewState,
+
+            askedQuestions: [
+
+              ...new Set([
+                ...state
+                  .medicalInterviewState
+                  .askedQuestions,
+
+                question
+              ])
+            ]
+          }
+        })),
+
+    addConfirmedSymptom:
+      (symptom) =>
+
+        set((state) => ({
+
+          medicalInterviewState: {
+
+            ...state.medicalInterviewState,
+
+            confirmedSymptoms: [
+
+              ...new Set([
+                ...state
+                  .medicalInterviewState
+                  .confirmedSymptoms,
+
+                symptom
+              ])
+            ]
+          }
+        })),
+
+    addDeniedSymptom:
+      (symptom) =>
+
+        set((state) => ({
+
+          medicalInterviewState: {
+
+            ...state.medicalInterviewState,
+
+            deniedSymptoms: [
+
+              ...new Set([
+                ...state
+                  .medicalInterviewState
+                  .deniedSymptoms,
+
+                symptom
+              ])
+            ]
+          }
+        })),
+
+    addPossibleTrigger:
+      (trigger) =>
+
+        set((state) => ({
+
+          medicalInterviewState: {
+
+            ...state.medicalInterviewState,
+
+            possibleTriggers: [
+
+              ...new Set([
+                ...state
+                  .medicalInterviewState
+                  .possibleTriggers,
+
+                trigger
+              ])
+            ]
+          }
+        })),
+
+    addAnsweredFact:
+      (fact) =>
+
+        set((state) => ({
+
+          medicalInterviewState: {
+
+            ...state.medicalInterviewState,
+
+            answeredFacts: [
+
+              ...new Set([
+                ...state
+                  .medicalInterviewState
+                  .answeredFacts,
+
+                fact
+              ])
+            ]
+          }
+        })),
+
+    resetInterviewState:
+      () =>
+
+        set({
+
+          medicalInterviewState:
+            initialInterviewState
         })
   }));

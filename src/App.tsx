@@ -67,13 +67,21 @@ export default function App() {
 
     setMedicalMemory,
 
-    setLastAnalysis
+    setLastAnalysis,
+
+    medicalInterviewState,
+
+    addAskedQuestion,
+
+    addAnsweredFact,
+
+    addPossibleTrigger,
+
+    addConfirmedSymptom,
+
+    updateInterviewState
 
   } = useChatStore();
-
-  // -----------------------------------
-  // LAST AI RESPONSE
-  // -----------------------------------
 
   const lastAiResponse =
     useMemo(() => {
@@ -89,10 +97,6 @@ export default function App() {
 
     }, [messages]);
 
-  // -----------------------------------
-  // SEND MESSAGE
-  // -----------------------------------
-
   const handleSendMessage =
     useCallback(async (
 
@@ -103,10 +107,6 @@ export default function App() {
       audioBlob?: Blob
 
     ) => {
-
-      // -----------------------------------
-      // EMPTY GUARD
-      // -----------------------------------
 
       if (
 
@@ -124,10 +124,6 @@ export default function App() {
 
         return;
       }
-
-      // -----------------------------------
-      // USER MESSAGE
-      // -----------------------------------
 
       const messageId =
         nanoid();
@@ -161,16 +157,16 @@ export default function App() {
           image
 
             ? [{
-              type: 'image',
-              url: image
-            }]
+                type: 'image',
+                url: image
+              }]
 
             : audioBlob
 
               ? [{
-                type: 'voice',
-                url: 'voice.webm'
-              }]
+                  type: 'voice',
+                  url: 'voice.webm'
+                }]
 
               : undefined
       };
@@ -187,7 +183,7 @@ export default function App() {
           text;
 
         // -----------------------------------
-        // VOICE TRANSCRIPTION
+        // VOICE
         // -----------------------------------
 
         if (audioBlob) {
@@ -201,26 +197,13 @@ export default function App() {
                   audioBlob
                 );
 
-            if (
-
-              useChatStore
-                .getState()
-                .messages.length > 0
-
-            ) {
-
-              updateMessage(
-                messageId,
-                {
-                  content:
-                    finalContent
-                }
-              );
-
-            } else {
-
-              return;
-            }
+            updateMessage(
+              messageId,
+              {
+                content:
+                  finalContent
+              }
+            );
 
           } catch (err: any) {
 
@@ -233,6 +216,68 @@ export default function App() {
             );
 
             throw err;
+          }
+        }
+
+        // -----------------------------------
+        // INTERVIEW MEMORY
+        // -----------------------------------
+
+        if (
+
+          finalContent
+
+          &&
+
+          finalContent !== 'Пропустить'
+
+        ) {
+
+          addAnsweredFact(
+            finalContent
+          );
+
+          // VERY LIGHTWEIGHT TRIGGER DETECTION
+
+          const lower =
+            finalContent.toLowerCase();
+
+          if (
+
+            lower.includes('остр')
+
+            ||
+
+            lower.includes('алког')
+
+          ) {
+
+            addPossibleTrigger(
+              finalContent
+            );
+          }
+
+          if (
+
+            lower.includes('зуд')
+
+            ||
+
+            lower.includes('боль')
+
+            ||
+
+            lower.includes('жжение')
+
+            ||
+
+            lower.includes('отек')
+
+          ) {
+
+            addConfirmedSymptom(
+              finalContent
+            );
           }
         }
 
@@ -252,7 +297,7 @@ export default function App() {
         );
 
         // -----------------------------------
-        // HISTORY
+        // STRUCTURED HISTORY
         // -----------------------------------
 
         const history =
@@ -261,10 +306,6 @@ export default function App() {
             .getState()
             .messages
             .map(m => {
-
-              // -----------------------------------
-              // USER MESSAGE
-              // -----------------------------------
 
               if (m.role === 'user') {
 
@@ -277,10 +318,6 @@ export default function App() {
                     m.content
                 };
               }
-
-              // -----------------------------------
-              // ASSISTANT MESSAGE
-              // -----------------------------------
 
               return {
 
@@ -313,6 +350,57 @@ export default function App() {
             });
 
         // -----------------------------------
+        // MEDICAL INTERVIEW CONTEXT
+        // -----------------------------------
+
+        const interviewContext = {
+
+          medical_interview_state: {
+
+            main_complaint:
+              medicalInterviewState
+                .mainComplaint,
+
+            confirmed_symptoms:
+              medicalInterviewState
+                .confirmedSymptoms,
+
+            denied_symptoms:
+              medicalInterviewState
+                .deniedSymptoms,
+
+            possible_triggers:
+              medicalInterviewState
+                .possibleTriggers,
+
+            asked_questions:
+              medicalInterviewState
+                .askedQuestions,
+
+            answered_facts:
+              medicalInterviewState
+                .answeredFacts,
+
+            current_hypotheses:
+              medicalInterviewState
+                .currentHypotheses
+          },
+
+          instructions: [
+
+            'НЕ повторяй уже заданные вопросы',
+
+            'Анализируй уже известные факты',
+
+            'Сначала исключай наиболее вероятные причины',
+
+            'Не спрашивай повторно про подтвержденные триггеры',
+
+            'Не задавай generic-вопросы'
+          ]
+        };
+
+        // -----------------------------------
         // STORE DATA
         // -----------------------------------
 
@@ -335,7 +423,21 @@ export default function App() {
         const response =
           await apiService.chat(
 
-            history,
+            [
+
+              ...history,
+
+              {
+
+                role:
+                  'system',
+
+                content:
+                  JSON.stringify(
+                    interviewContext
+                  )
+              }
+            ],
 
             medicalMemory,
 
@@ -359,7 +461,23 @@ export default function App() {
         } = response;
 
         // -----------------------------------
-        // MEMORY UPDATE
+        // SAVE ASKED QUESTION
+        // -----------------------------------
+
+        if (
+
+          decision?.mode ===
+          'CLARIFICATION_MODE'
+
+        ) {
+
+          addAskedQuestion(
+            aiText
+          );
+        }
+
+        // -----------------------------------
+        // MEMORY
         // -----------------------------------
 
         if (updatedMemory) {
@@ -370,7 +488,7 @@ export default function App() {
         }
 
         // -----------------------------------
-        // ANALYSIS UPDATE
+        // ANALYSIS
         // -----------------------------------
 
         if (updatedAnalysis) {
@@ -423,13 +541,32 @@ export default function App() {
         }
 
         // -----------------------------------
+        // INTERVIEW COMPLETE
+        // -----------------------------------
+
+        if (interviewCompleted) {
+
+          updateInterviewState({
+
+            interviewCompleted:
+              true
+          });
+        }
+
+        // -----------------------------------
         // AI DATA
         // -----------------------------------
 
         const aiData: AIResponse = {
 
           summary:
-            aiText,
+
+            decision?.mode ===
+            'CLARIFICATION_MODE'
+
+              ? ''
+
+              : aiText,
 
           message:
             aiText,
@@ -464,10 +601,6 @@ export default function App() {
           router_decision:
             decision
         };
-
-        // -----------------------------------
-        // ASSISTANT MESSAGE
-        // -----------------------------------
 
         const assistantMessage: Message = {
 
@@ -526,18 +659,14 @@ export default function App() {
 
       setMedicalMemory,
 
-      setLastAnalysis
-    ]);
+      setLastAnalysis,
 
-  // -----------------------------------
-  // UI
-  // -----------------------------------
+      medicalInterviewState
+    ]);
 
   return (
 
     <div className="flex flex-col h-screen max-w-2xl mx-auto bg-white shadow-2xl relative overflow-hidden">
-
-      {/* ERROR */}
 
       <AnimatePresence>
 
@@ -592,8 +721,6 @@ export default function App() {
         )}
 
       </AnimatePresence>
-
-      {/* HEADER */}
 
       <header className="px-5 py-4 bg-teal-600 border-b border-teal-700/50 flex items-center justify-between z-20 shadow-md">
 
@@ -655,8 +782,6 @@ export default function App() {
 
       </header>
 
-      {/* WARNING */}
-
       <div className="bg-amber-50 px-4 py-1.5 flex items-center justify-center gap-2 border-b border-amber-100 z-10">
 
         <ShieldAlert
@@ -672,8 +797,6 @@ export default function App() {
 
       </div>
 
-      {/* CHAT */}
-
       <main className="flex-1 flex flex-col relative min-h-0">
 
         <MessageList
@@ -685,8 +808,6 @@ export default function App() {
 
       </main>
 
-      {/* INPUT */}
-
       <footer className="relative z-20">
 
         <ChatInput
@@ -696,20 +817,12 @@ export default function App() {
           isLoading={isLoading}
 
           suggestions={
-
             lastAiResponse
               ?.quick_replies
-
-            ||
-
-            lastAiResponse
-              ?.quickReplies
           }
         />
 
       </footer>
-
-      {/* BG */}
 
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[30%] bg-blue-400/5 blur-[100px] rounded-full pointer-events-none" />
 
