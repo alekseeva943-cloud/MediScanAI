@@ -45,6 +45,36 @@ Examples:
 - "онемение"
 - "температура"
 
+
+-----------------------------------
+
+negativeFindings:
+- Symptoms the user DENIES.
+
+Examples:
+- "нет отека"
+- "онемения нет"
+- "нет температуры"
+
+Examples of extraction:
+
+USER:
+"Нет отека и онемения"
+
+OUTPUT:
+
+{
+  "negativeFindings": [
+    "отек",
+    "онемение"
+  ],
+
+  "resolvedTopics": [
+    "swelling",
+    "numbness"
+  ]
+}
+
 -----------------------------------
 
 pain.location:
