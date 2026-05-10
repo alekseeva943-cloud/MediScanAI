@@ -1,9 +1,18 @@
 // src/services/apiService.ts
 
-import {
+import type {
+
   Message,
-  AIResponse
+
+  MedicalCase,
+
+  PatientProfile
+
 } from '../types';
+
+// -----------------------------------------------------
+// RESPONSE
+// -----------------------------------------------------
 
 export interface ChatApiResponse {
 
@@ -20,11 +29,15 @@ export interface ChatApiResponse {
   interviewCompleted?: boolean;
 }
 
+// -----------------------------------------------------
+// API
+// -----------------------------------------------------
+
 export const apiService = {
 
-  // -----------------------------------
+  // -----------------------------------------------------
   // CHAT
-  // -----------------------------------
+  // -----------------------------------------------------
 
   async chat(
 
@@ -36,11 +49,24 @@ export const apiService = {
 
     }[],
 
-    memory?: any,
+    patientProfile?: PatientProfile | null,
+
+    activeCase?: MedicalCase | null,
 
     lastAnalysis?: any
 
   ): Promise<ChatApiResponse> {
+
+    // -----------------------------------------------------
+    // REDUCE HISTORY
+    // -----------------------------------------------------
+
+    const reducedMessages =
+      messages.slice(-4);
+
+    // -----------------------------------------------------
+    // REQUEST
+    // -----------------------------------------------------
 
     const response =
       await fetch('/api/chat', {
@@ -48,23 +74,27 @@ export const apiService = {
         method: 'POST',
 
         headers: {
+
           'Content-Type':
             'application/json'
         },
 
         body: JSON.stringify({
 
-          messages,
+          messages:
+            reducedMessages,
 
-          memory,
+          patientProfile,
+
+          activeCase,
 
           lastAnalysis
         })
       });
 
-    // -----------------------------------
+    // -----------------------------------------------------
     // ERROR
-    // -----------------------------------
+    // -----------------------------------------------------
 
     if (!response.ok) {
 
@@ -79,9 +109,9 @@ export const apiService = {
       );
     }
 
-    // -----------------------------------
+    // -----------------------------------------------------
     // DATA
-    // -----------------------------------
+    // -----------------------------------------------------
 
     const data =
       await response.json();
@@ -116,9 +146,9 @@ export const apiService = {
     };
   },
 
-  // -----------------------------------
+  // -----------------------------------------------------
   // VOICE
-  // -----------------------------------
+  // -----------------------------------------------------
 
   async transcribeVoice(
     audioBlob: Blob

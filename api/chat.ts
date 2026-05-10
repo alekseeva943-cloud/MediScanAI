@@ -1,28 +1,126 @@
 // api/chat.ts
 
 import type {
+
   VercelRequest,
+
   VercelResponse
+
 } from '@vercel/node';
 
-function containsAny(
-  text: string,
-  words: string[]
-) {
+import type {
 
-  return words.some(word =>
-    text.includes(word)
-  );
+  MedicalCase,
+
+  PatientProfile
+
+} from '../src/types';
+
+// -----------------------------------------------------
+// HELPERS
+// -----------------------------------------------------
+
+function safeArray(
+  value: any
+): string[] {
+
+  return Array.isArray(value)
+    ? value
+    : [];
 }
 
+function buildPatientSummary(
+  profile?: PatientProfile | null
+) {
+
+  if (!profile) {
+    return '';
+  }
+
+  return `
+
+PATIENT PROFILE:
+
+Имя:
+${profile.firstName || 'Не указано'}
+
+Возраст:
+${profile.age || 'Не указан'}
+
+Пол:
+${profile.gender || 'Не указан'}
+
+Аллергии:
+${safeArray(profile.allergies).join(', ') || 'Нет данных'}
+
+Хронические заболевания:
+${safeArray(profile.chronicConditions).join(', ') || 'Нет данных'}
+
+Лекарства:
+${safeArray(profile.medications).join(', ') || 'Нет данных'}
+
+Операции:
+${safeArray(profile.surgeries).join(', ') || 'Нет данных'}
+
+Факторы риска:
+${safeArray(profile.riskFactors).join(', ') || 'Нет данных'}
+`;
+}
+
+function buildCaseSummary(
+  medicalCase?: MedicalCase | null
+) {
+
+  if (!medicalCase) {
+    return '';
+  }
+
+  return `
+
+ACTIVE MEDICAL CASE:
+
+Главная жалоба:
+${medicalCase.chiefComplaint || 'Не указана'}
+
+Подтвержденные симптомы:
+${safeArray(medicalCase.confirmedSymptoms).join(', ') || 'Нет'}
+
+Исключенные симптомы:
+${safeArray(medicalCase.excludedSymptoms).join(', ') || 'Нет'}
+
+Триггеры:
+${safeArray(medicalCase.detectedTriggers).join(', ') || 'Нет'}
+
+Вероятные состояния:
+${safeArray(medicalCase.possibleConditions).join(', ') || 'Нет'}
+
+Красные флаги:
+${safeArray(medicalCase.redFlags).join(', ') || 'Нет'}
+
+Уровень риска:
+${medicalCase.dangerLevel || 'low'}
+
+AI Summary:
+${medicalCase.aiSummary || 'Нет'}
+`;
+}
+
+// -----------------------------------------------------
+// HANDLER
+// -----------------------------------------------------
+
 export default async function handler(
+
   req: VercelRequest,
+
   res: VercelResponse
+
 ) {
 
   if (req.method !== 'POST') {
 
     return res.status(405).json({
+
       error:
         'Метод не поддерживается'
     });
@@ -30,11 +128,25 @@ export default async function handler(
 
   try {
 
+    // -----------------------------------------------------
+    // BODY
+    // -----------------------------------------------------
+
     const {
+
       messages,
-      memory,
+
+      patientProfile,
+
+      activeCase,
+
       lastAnalysis
+
     } = req.body;
+
+    // -----------------------------------------------------
+    // ORCHESTRATOR
+    // -----------------------------------------------------
 
     const {
       MedicalOrchestrator
@@ -44,6 +156,10 @@ export default async function handler(
 
     const orchestrator =
       new MedicalOrchestrator();
+
+    // -----------------------------------------------------
+    // SAFE MESSAGES
+    // -----------------------------------------------------
 
     const safeMessages =
       Array.isArray(messages)
@@ -55,20 +171,18 @@ export default async function handler(
         safeMessages.length - 1
       ];
 
-    const history =
-      safeMessages.slice(-12, -1);
-
     if (!lastMessage) {
 
       return res.status(400).json({
+
         error:
           'Нет сообщения пользователя'
       });
     }
 
-    // -----------------------------------
+    // -----------------------------------------------------
     // USER INPUT
-    // -----------------------------------
+    // -----------------------------------------------------
 
     let userInput = '';
 
@@ -81,9 +195,9 @@ export default async function handler(
         lastMessage.content;
     }
 
-    // -----------------------------------
+    // -----------------------------------------------------
     // IMAGE EXTRACTION
-    // -----------------------------------
+    // -----------------------------------------------------
 
     const imageParts: any[] = [];
 
@@ -139,9 +253,50 @@ export default async function handler(
       );
     }
 
-    // -----------------------------------
-    // PROCESS AI
-    // -----------------------------------
+    // -----------------------------------------------------
+    // MEDICAL CONTEXT
+    // -----------------------------------------------------
+
+    const patientSummary =
+      buildPatientSummary(
+        patientProfile
+      );
+
+    const caseSummary =
+      buildCaseSummary(
+        activeCase
+      );
+
+    const recentConversation =
+      safeMessages
+        .slice(-4)
+        .map((m: any) =>
+
+          `${m.role}: ${
+
+            typeof m.content === 'string'
+
+              ? m.content
+
+              : JSON.stringify(m.content)
+          }`
+        )
+        .join('\n');
+
+    const medicalContext = `
+
+${patientSummary}
+
+${caseSummary}
+
+RECENT CONVERSATION:
+
+${recentConversation}
+`;
+
+    // -----------------------------------------------------
+    // AI PROCESSING
+    // -----------------------------------------------------
 
     const result =
       await orchestrator.processRequest(
@@ -150,28 +305,22 @@ export default async function handler(
 
         imageParts,
 
-        history,
+        [
 
-        memory || {
+          {
+            role: 'system',
+            content: medicalContext
+          }
+        ],
 
-          symptoms: [],
-          medications: [],
-          diagnoses: [],
-          allergies: [],
-          riskFactors: [],
-          uploadedDocuments: [],
-          extractedFacts: [],
-          chronicConditions: [],
-          surgeries: [],
-          familyHistory: []
-        },
+        patientProfile || {},
 
         lastAnalysis || null
       );
 
-    // -----------------------------------
-    // SAFE JSON PARSING
-    // -----------------------------------
+    // -----------------------------------------------------
+    // SAFE JSON PARSE
+    // -----------------------------------------------------
 
     let parsedResponse: any = null;
 
@@ -203,9 +352,9 @@ export default async function handler(
       );
     }
 
-    // -----------------------------------
+    // -----------------------------------------------------
     // FINAL TEXT
-    // -----------------------------------
+    // -----------------------------------------------------
 
     let finalText =
 
@@ -219,9 +368,9 @@ export default async function handler(
 
       'Не удалось сформировать ответ';
 
-    // -----------------------------------
+    // -----------------------------------------------------
     // QUICK REPLIES
-    // -----------------------------------
+    // -----------------------------------------------------
 
     let finalQuickReplies: string[] = [];
 
@@ -249,9 +398,9 @@ export default async function handler(
         result.quickReplies;
     }
 
-    // -----------------------------------
+    // -----------------------------------------------------
     // ALWAYS ADD SKIP
-    // -----------------------------------
+    // -----------------------------------------------------
 
     if (
 
@@ -270,122 +419,11 @@ export default async function handler(
       );
     }
 
-    // -----------------------------------
-    // HISTORY TEXT
-    // -----------------------------------
+    // -----------------------------------------------------
+    // INTERVIEW COMPLETED
+    // -----------------------------------------------------
 
-    const fullConversation =
-
-      safeMessages
-        .map((m: any) =>
-
-          typeof m.content === 'string'
-
-            ? m.content
-
-            : JSON.stringify(m.content)
-        )
-        .join(' ')
-        .toLowerCase();
-
-    // -----------------------------------
-    // RED FLAGS
-    // -----------------------------------
-
-    const hasRedFlags =
-
-      containsAny(
-        fullConversation,
-        [
-
-          'кровь',
-
-          'сильная боль',
-
-          'температура',
-
-          'рвота',
-
-          'потеря сознания',
-
-          'черный стул',
-
-          'не могу ходить',
-
-          'сильный отек',
-
-          'гной'
-        ]
-      );
-
-    // -----------------------------------
-    // SAFE TRIGGER DETECTION
-    // -----------------------------------
-
-    const spicyFoodDetected =
-
-      containsAny(
-        fullConversation,
-        [
-
-          'остр',
-
-          'халапеньо',
-
-          'шаурм',
-
-          'перец'
-        ]
-      );
-
-    const repeatedPatternDetected =
-
-      containsAny(
-        fullConversation,
-        [
-
-          'каждый раз',
-
-          'раньше было',
-
-          'повторяется'
-        ]
-      );
-
-    const mildCaseDetected =
-
-      containsAny(
-        fullConversation,
-        [
-
-          'только жжение',
-
-          'нет других симптомов',
-
-          'нет температуры',
-
-          'все нормально'
-        ]
-      );
-
-    // -----------------------------------
-    // QUESTION LOOP DETECTION
-    // -----------------------------------
-
-    const assistantQuestions =
-      safeMessages.filter(
-        (m: any) =>
-          m.role === 'assistant'
-      );
-
-    const clarificationCount =
-      assistantQuestions.length;
-
-    // -----------------------------------
-    // AUTO FINISH LOGIC
-    // -----------------------------------
-
-    let interviewCompleted =
+    const interviewCompleted =
 
       parsedResponse
         ?.interview_completed
@@ -399,79 +437,9 @@ export default async function handler(
 
       false;
 
-    const shouldForceFinish =
-
-      !hasRedFlags
-
-      &&
-
-      spicyFoodDetected
-
-      &&
-
-      (
-        repeatedPatternDetected
-        ||
-
-        mildCaseDetected
-        ||
-
-        clarificationCount >= 6
-      );
-
-    // -----------------------------------
-    // FORCE FINISH
-    // -----------------------------------
-
-    if (
-
-      shouldForceFinish
-
-      &&
-
-      !interviewCompleted
-
-    ) {
-
-      interviewCompleted = true;
-
-      finalText =
-
-        'Наиболее вероятно, это раздражение слизистой и кожи после острой пищи. '
-
-        +
-
-        'Серьезных опасных признаков сейчас не видно. '
-
-        +
-
-        'Обычно такое состояние проходит самостоятельно в течение 1–2 дней. '
-
-        +
-
-        'Постарайтесь временно исключить острую пищу, используйте мягкую туалетную бумагу и избегайте дополнительного раздражения области. '
-
-        +
-
-        'Если появятся кровь, сильная боль, температура или симптомы усилятся — обратитесь к врачу.';
-
-      finalQuickReplies = [
-
-        '📄 Создать отчет',
-
-        '🩻 Загрузить МРТ',
-
-        '🧪 Прикрепить анализы',
-
-        '📷 Загрузить фото',
-
-        '➕ Добавить симптомы'
-      ];
-    }
-
-    // -----------------------------------
+    // -----------------------------------------------------
     // FINAL ACTIONS
-    // -----------------------------------
+    // -----------------------------------------------------
 
     if (
 
@@ -497,9 +465,9 @@ export default async function handler(
       ];
     }
 
-    // -----------------------------------
+    // -----------------------------------------------------
     // RESPONSE
-    // -----------------------------------
+    // -----------------------------------------------------
 
     return res.status(200).json({
 

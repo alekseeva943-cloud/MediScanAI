@@ -1,5 +1,9 @@
 // src/ai/types/index.ts
 
+// -----------------------------------------------------
+// USER INTENT
+// -----------------------------------------------------
+
 export enum UserIntent {
 
   SYMPTOM_ANALYSIS =
@@ -14,6 +18,10 @@ export enum UserIntent {
   FOLLOW_UP =
     "FOLLOW_UP"
 }
+
+// -----------------------------------------------------
+// RESPONSE MODE
+// -----------------------------------------------------
 
 export enum ResponseMode {
 
@@ -33,9 +41,9 @@ export enum ResponseMode {
     "EMERGENCY_WARNING_MODE"
 }
 
-// -----------------------------------
+// -----------------------------------------------------
 // ROUTER
-// -----------------------------------
+// -----------------------------------------------------
 
 export interface RouterDecision {
 
@@ -61,9 +69,12 @@ export interface RouterDecision {
   interviewCompleted?: boolean;
 }
 
-// -----------------------------------
-// MEMORY
-// -----------------------------------
+// -----------------------------------------------------
+// LEGACY MEMORY
+// -----------------------------------------------------
+
+// Временно сохраняем.
+// Потом постепенно уберем.
 
 export interface MedicalMemory {
 
@@ -92,9 +103,88 @@ export interface MedicalMemory {
   sex?: string;
 }
 
-// -----------------------------------
+// -----------------------------------------------------
+// PATIENT PROFILE UPDATE
+// -----------------------------------------------------
+
+export interface PatientProfileUpdate {
+
+  firstName?: string;
+
+  lastName?: string;
+
+  age?: number;
+
+  gender?:
+    | "male"
+    | "female"
+    | "other";
+
+  allergies?: string[];
+
+  chronicConditions?: string[];
+
+  medications?: string[];
+
+  surgeries?: string[];
+
+  familyHistory?: string[];
+
+  riskFactors?: string[];
+}
+
+// -----------------------------------------------------
+// MEDICAL CASE UPDATE
+// -----------------------------------------------------
+
+export interface MedicalCaseUpdate {
+
+  chiefComplaint?: string;
+
+  probableCause?: string;
+
+  confirmedSymptoms?: string[];
+
+  excludedSymptoms?: string[];
+
+  detectedTriggers?: string[];
+
+  possibleConditions?: string[];
+
+  excludedConditions?: string[];
+
+  recommendations?: string[];
+
+  redFlags?: string[];
+
+  followUpQuestions?: string[];
+
+  dangerLevel?:
+    | "low"
+    | "medium"
+    | "high";
+
+  aiSummary?: string;
+
+  interviewCompleted?: boolean;
+}
+
+// -----------------------------------------------------
+// AI MEDICAL UPDATE RESULT
+// -----------------------------------------------------
+
+export interface AIMedicalUpdateResult {
+
+  patientProfileUpdates?:
+    PatientProfileUpdate;
+
+  medicalCaseUpdates?:
+    MedicalCaseUpdate;
+}
+
+// -----------------------------------------------------
 // MEDICATION
-// -----------------------------------
+// -----------------------------------------------------
 
 export interface MedicationItem {
 
@@ -105,9 +195,9 @@ export interface MedicationItem {
   contraindications?: string[];
 }
 
-// -----------------------------------
+// -----------------------------------------------------
 // ANALYSIS SNAPSHOT
-// -----------------------------------
+// -----------------------------------------------------
 
 export interface AnalysisSnapshot {
 

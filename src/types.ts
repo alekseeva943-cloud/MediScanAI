@@ -1,14 +1,29 @@
 // src/types.ts
 
+// -----------------------------------------------------
+// ATTACHMENTS
+// -----------------------------------------------------
+
 export interface Attachment {
 
   type:
     | 'image'
     | 'voice'
-    | 'file';
+    | 'file'
+    | 'mri'
+    | 'analysis'
+    | 'document';
 
   url: string;
+
+  name?: string;
+
+  uploadedAt?: number;
 }
+
+// -----------------------------------------------------
+// ROUTER DECISION
+// -----------------------------------------------------
 
 export interface RouterDecision {
 
@@ -19,7 +34,8 @@ export interface RouterDecision {
     | 'CLARIFICATION_MODE'
     | 'FULL_MEDICAL_ANALYSIS'
     | 'ANALYSIS_UPDATE_MODE'
-    | 'EMERGENCY_WARNING_MODE';
+    | 'EMERGENCY_WARNING_MODE'
+    | 'REPORT_MODE';
 
   needsClarification?: boolean;
 
@@ -40,6 +56,10 @@ export interface RouterDecision {
 
   probableCause?: string;
 }
+
+// -----------------------------------------------------
+// AI RESPONSE
+// -----------------------------------------------------
 
 export interface AIResponse {
 
@@ -69,6 +89,10 @@ export interface AIResponse {
   message?: string;
 }
 
+// -----------------------------------------------------
+// MESSAGE
+// -----------------------------------------------------
+
 export interface Message {
 
   id: string;
@@ -86,6 +110,170 @@ export interface Message {
 
   ai_data?: AIResponse;
 }
+
+// -----------------------------------------------------
+// PATIENT PROFILE
+// -----------------------------------------------------
+
+export interface PatientProfile {
+
+  id: string;
+
+  firstName?: string;
+
+  lastName?: string;
+
+  middleName?: string;
+
+  age?: number;
+
+  gender?:
+    | 'male'
+    | 'female'
+    | 'other';
+
+  height?: number;
+
+  weight?: number;
+
+  allergies: string[];
+
+  chronicConditions: string[];
+
+  medications: string[];
+
+  surgeries: string[];
+
+  familyHistory: string[];
+
+  badHabits: string[];
+
+  riskFactors: string[];
+
+  createdAt: number;
+
+  updatedAt: number;
+}
+
+// -----------------------------------------------------
+// MEDICAL DOCUMENT
+// -----------------------------------------------------
+
+export interface MedicalDocument {
+
+  id: string;
+
+  type:
+    | 'analysis'
+    | 'mri'
+    | 'xray'
+    | 'photo'
+    | 'prescription'
+    | 'other';
+
+  title: string;
+
+  url: string;
+
+  extractedText?: string;
+
+  aiSummary?: string;
+
+  uploadedAt: number;
+}
+
+// -----------------------------------------------------
+// CASE TIMELINE EVENT
+// -----------------------------------------------------
+
+export interface CaseTimelineEvent {
+
+  id: string;
+
+  type:
+    | 'symptom'
+    | 'upload'
+    | 'ai_update'
+    | 'report'
+    | 'user_note';
+
+  title: string;
+
+  description?: string;
+
+  createdAt: number;
+}
+
+// -----------------------------------------------------
+// MEDICAL CASE
+// -----------------------------------------------------
+
+export interface MedicalCase {
+
+  id: string;
+
+  title: string;
+
+  chiefComplaint: string;
+
+  status:
+    | 'active'
+    | 'monitoring'
+    | 'resolved';
+
+  probableCause: string;
+
+  confidence:
+    | 'low'
+    | 'medium'
+    | 'high';
+
+  dangerLevel:
+    | 'low'
+    | 'medium'
+    | 'high';
+
+  symptoms: string[];
+
+  confirmedSymptoms: string[];
+
+  excludedSymptoms: string[];
+
+  detectedTriggers: string[];
+
+  possibleConditions: string[];
+
+  excludedConditions: string[];
+
+  recommendations: string[];
+
+  redFlags: string[];
+
+  followUpQuestions: string[];
+
+  uploadedDocuments: string[];
+
+  timeline: CaseTimelineEvent[];
+
+  aiSummary?: string;
+
+  clarificationCount: number;
+
+  interviewCompleted: boolean;
+
+  reportGenerated: boolean;
+
+  createdAt: number;
+
+  updatedAt: number;
+}
+
+// -----------------------------------------------------
+// LEGACY MEMORY
+// -----------------------------------------------------
+
+// Оставляем временно для совместимости.
+// Потом удалим полностью.
 
 export interface MedicalMemory {
 
@@ -110,44 +298,9 @@ export interface MedicalMemory {
   familyHistory: string[];
 }
 
-export interface MedicalCase {
-
-  probableCause: string;
-
-  confidence:
-    | 'low'
-    | 'medium'
-    | 'high';
-
-  dangerLevel:
-    | 'low'
-    | 'medium'
-    | 'high';
-
-  symptoms: string[];
-
-  detectedTriggers: string[];
-
-  excludedConditions: string[];
-
-  possibleConditions: string[];
-
-  recommendations: string[];
-
-  redFlags: string[];
-
-  followUpQuestions: string[];
-
-  clarificationCount: number;
-
-  interviewCompleted: boolean;
-
-  reportGenerated: boolean;
-
-  createdAt: number;
-
-  updatedAt: number;
-}
+// -----------------------------------------------------
+// ANALYSIS SNAPSHOT
+// -----------------------------------------------------
 
 export interface AnalysisSnapshot {
 

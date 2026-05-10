@@ -3,11 +3,28 @@
 import { create } from 'zustand';
 
 import type {
+
   Message,
-  MedicalCase
+
+  MedicalCase,
+
+  MedicalDocument,
+
+  PatientProfile,
+
+  MedicalMemory
+
 } from '../types';
 
+// -----------------------------------------------------
+// STORE INTERFACE
+// -----------------------------------------------------
+
 interface ChatStore {
+
+  // -----------------------------------------------------
+  // CHAT
+  // -----------------------------------------------------
 
   messages: Message[];
 
@@ -17,15 +34,37 @@ interface ChatStore {
 
   error: string | null;
 
-  medicalMemory: any;
+  // -----------------------------------------------------
+  // PATIENT
+  // -----------------------------------------------------
+
+  patientProfile: PatientProfile | null;
+
+  // -----------------------------------------------------
+  // CASES
+  // -----------------------------------------------------
+
+  activeCase: MedicalCase | null;
+
+  medicalCases: MedicalCase[];
+
+  // -----------------------------------------------------
+  // DOCUMENTS
+  // -----------------------------------------------------
+
+  documents: MedicalDocument[];
+
+  // -----------------------------------------------------
+  // LEGACY
+  // -----------------------------------------------------
+
+  medicalMemory: MedicalMemory;
 
   lastAnalysis: any;
 
-  medicalCase: MedicalCase | null;
-
-  // -----------------------------------
-  // ACTIONS
-  // -----------------------------------
+  // -----------------------------------------------------
+  // CHAT ACTIONS
+  // -----------------------------------------------------
 
   addMessage:
     (message: Message) => void;
@@ -50,32 +89,121 @@ interface ChatStore {
       error: string | null
     ) => void;
 
-  setMedicalMemory:
-    (memory: any) => void;
+  // -----------------------------------------------------
+  // PATIENT ACTIONS
+  // -----------------------------------------------------
 
-  setLastAnalysis:
-    (analysis: any) => void;
+  setPatientProfile:
+    (
+      profile: PatientProfile
+    ) => void;
 
-  setMedicalCase:
+  updatePatientProfile:
+    (
+      updates: Partial<PatientProfile>
+    ) => void;
+
+  resetPatientProfile:
+    () => void;
+
+  // -----------------------------------------------------
+  // CASE ACTIONS
+  // -----------------------------------------------------
+
+  setActiveCase:
     (
       medicalCase: MedicalCase
     ) => void;
 
-  updateMedicalCase:
+  updateActiveCase:
     (
       updates: Partial<MedicalCase>
     ) => void;
 
-  resetMedicalCase:
+  addMedicalCase:
+    (
+      medicalCase: MedicalCase
+    ) => void;
+
+  archiveActiveCase:
     () => void;
+
+  resetActiveCase:
+    () => void;
+
+  // -----------------------------------------------------
+  // DOCUMENTS
+  // -----------------------------------------------------
+
+  addDocument:
+    (
+      document: MedicalDocument
+    ) => void;
+
+  removeDocument:
+    (
+      id: string
+    ) => void;
+
+  // -----------------------------------------------------
+  // LEGACY ACTIONS
+  // -----------------------------------------------------
+
+  setMedicalMemory:
+    (
+      memory: MedicalMemory
+    ) => void;
+
+  setLastAnalysis:
+    (
+      analysis: any
+    ) => void;
 }
 
-// -----------------------------------
+// -----------------------------------------------------
+// INITIAL PATIENT PROFILE
+// -----------------------------------------------------
+
+const initialPatientProfile:
+  PatientProfile = {
+
+  id: 'default-patient',
+
+  allergies: [],
+
+  chronicConditions: [],
+
+  medications: [],
+
+  surgeries: [],
+
+  familyHistory: [],
+
+  badHabits: [],
+
+  riskFactors: [],
+
+  createdAt:
+    Date.now(),
+
+  updatedAt:
+    Date.now()
+};
+
+// -----------------------------------------------------
 // INITIAL MEDICAL CASE
-// -----------------------------------
+// -----------------------------------------------------
 
 const initialMedicalCase:
   MedicalCase = {
+
+  id: 'active-case',
+
+  title: 'Новое обращение',
+
+  chiefComplaint: '',
+
+  status: 'active',
 
   probableCause: '',
 
@@ -85,17 +213,27 @@ const initialMedicalCase:
 
   symptoms: [],
 
+  confirmedSymptoms: [],
+
+  excludedSymptoms: [],
+
   detectedTriggers: [],
 
-  excludedConditions: [],
-
   possibleConditions: [],
+
+  excludedConditions: [],
 
   recommendations: [],
 
   redFlags: [],
 
   followUpQuestions: [],
+
+  uploadedDocuments: [],
+
+  timeline: [],
+
+  aiSummary: '',
 
   clarificationCount: 0,
 
@@ -110,12 +248,44 @@ const initialMedicalCase:
     Date.now()
 };
 
-export const useChatStore =
-  create<ChatStore>((set) => ({
+// -----------------------------------------------------
+// INITIAL MEMORY
+// -----------------------------------------------------
 
-    // -----------------------------------
-    // STATE
-    // -----------------------------------
+const initialMedicalMemory:
+  MedicalMemory = {
+
+  symptoms: [],
+
+  medications: [],
+
+  diagnoses: [],
+
+  allergies: [],
+
+  riskFactors: [],
+
+  uploadedDocuments: [],
+
+  extractedFacts: [],
+
+  chronicConditions: [],
+
+  surgeries: [],
+
+  familyHistory: []
+};
+
+// -----------------------------------------------------
+// STORE
+// -----------------------------------------------------
+
+export const useChatStore =
+  create<ChatStore>((set, get) => ({
+
+    // -----------------------------------------------------
+    // CHAT
+    // -----------------------------------------------------
 
     messages: [],
 
@@ -125,37 +295,40 @@ export const useChatStore =
 
     error: null,
 
-    lastAnalysis: null,
+    // -----------------------------------------------------
+    // PATIENT
+    // -----------------------------------------------------
 
-    medicalCase:
+    patientProfile:
+      initialPatientProfile,
+
+    // -----------------------------------------------------
+    // CASES
+    // -----------------------------------------------------
+
+    activeCase:
       initialMedicalCase,
 
-    medicalMemory: {
+    medicalCases: [],
 
-      symptoms: [],
+    // -----------------------------------------------------
+    // DOCUMENTS
+    // -----------------------------------------------------
 
-      medications: [],
+    documents: [],
 
-      diagnoses: [],
+    // -----------------------------------------------------
+    // LEGACY
+    // -----------------------------------------------------
 
-      allergies: [],
+    medicalMemory:
+      initialMedicalMemory,
 
-      riskFactors: [],
+    lastAnalysis: null,
 
-      uploadedDocuments: [],
-
-      extractedFacts: [],
-
-      chronicConditions: [],
-
-      surgeries: [],
-
-      familyHistory: []
-    },
-
-    // -----------------------------------
-    // ADD MESSAGE
-    // -----------------------------------
+    // -----------------------------------------------------
+    // CHAT ACTIONS
+    // -----------------------------------------------------
 
     addMessage:
       (message) =>
@@ -167,10 +340,6 @@ export const useChatStore =
             message
           ]
         })),
-
-    // -----------------------------------
-    // UPDATE MESSAGE
-    // -----------------------------------
 
     updateMessage:
       (id, updates) =>
@@ -191,10 +360,6 @@ export const useChatStore =
             )
         })),
 
-    // -----------------------------------
-    // CLEAR HISTORY
-    // -----------------------------------
-
     clearHistory:
       () =>
 
@@ -202,42 +367,15 @@ export const useChatStore =
 
           messages: [],
 
-          lastAnalysis: null,
-
           error: null,
 
           status: null,
 
-          medicalCase:
-            initialMedicalCase,
+          lastAnalysis: null,
 
-          medicalMemory: {
-
-            symptoms: [],
-
-            medications: [],
-
-            diagnoses: [],
-
-            allergies: [],
-
-            riskFactors: [],
-
-            uploadedDocuments: [],
-
-            extractedFacts: [],
-
-            chronicConditions: [],
-
-            surgeries: [],
-
-            familyHistory: []
-          }
+          activeCase:
+            initialMedicalCase
         }),
-
-    // -----------------------------------
-    // LOADING
-    // -----------------------------------
 
     setLoading:
       (
@@ -252,10 +390,6 @@ export const useChatStore =
           status
         }),
 
-    // -----------------------------------
-    // ERROR
-    // -----------------------------------
-
     setError:
       (error) =>
 
@@ -263,38 +397,62 @@ export const useChatStore =
           error
         }),
 
-    // -----------------------------------
-    // MEMORY
-    // -----------------------------------
+    // -----------------------------------------------------
+    // PATIENT ACTIONS
+    // -----------------------------------------------------
 
-    setMedicalMemory:
-      (medicalMemory) =>
-
-        set({
-          medicalMemory
-        }),
-
-    // -----------------------------------
-    // ANALYSIS
-    // -----------------------------------
-
-    setLastAnalysis:
-      (lastAnalysis) =>
+    setPatientProfile:
+      (profile) =>
 
         set({
-          lastAnalysis
+
+          patientProfile: {
+
+            ...profile,
+
+            updatedAt:
+              Date.now()
+          }
         }),
 
-    // -----------------------------------
-    // SET MEDICAL CASE
-    // -----------------------------------
+    updatePatientProfile:
+      (updates) =>
 
-    setMedicalCase:
+        set((state) => ({
+
+          patientProfile: {
+
+            ...(
+              state.patientProfile
+              || initialPatientProfile
+            ),
+
+            ...updates,
+
+            updatedAt:
+              Date.now()
+          }
+        })),
+
+    resetPatientProfile:
+      () =>
+
+        set({
+
+          patientProfile:
+            initialPatientProfile
+        }),
+
+    // -----------------------------------------------------
+    // CASE ACTIONS
+    // -----------------------------------------------------
+
+    setActiveCase:
       (medicalCase) =>
 
         set({
 
-          medicalCase: {
+          activeCase: {
 
             ...medicalCase,
 
@@ -303,19 +461,15 @@ export const useChatStore =
           }
         }),
 
-    // -----------------------------------
-    // UPDATE MEDICAL CASE
-    // -----------------------------------
-
-    updateMedicalCase:
+    updateActiveCase:
       (updates) =>
 
         set((state) => ({
 
-          medicalCase: {
+          activeCase: {
 
             ...(
-              state.medicalCase
+              state.activeCase
               || initialMedicalCase
             ),
 
@@ -326,16 +480,100 @@ export const useChatStore =
           }
         })),
 
-    // -----------------------------------
-    // RESET MEDICAL CASE
-    // -----------------------------------
+    addMedicalCase:
+      (medicalCase) =>
 
-    resetMedicalCase:
+        set((state) => ({
+
+          medicalCases: [
+            medicalCase,
+            ...state.medicalCases
+          ]
+        })),
+
+    archiveActiveCase:
+      () => {
+
+        const currentCase =
+          get().activeCase;
+
+        if (!currentCase) {
+          return;
+        }
+
+        set((state) => ({
+
+          medicalCases: [
+            currentCase,
+            ...state.medicalCases
+          ],
+
+          activeCase: {
+
+            ...initialMedicalCase,
+
+            id:
+              `case-${Date.now()}`,
+
+            createdAt:
+              Date.now(),
+
+            updatedAt:
+              Date.now()
+          }
+        }));
+      },
+
+    resetActiveCase:
       () =>
 
         set({
 
-          medicalCase:
+          activeCase:
             initialMedicalCase
+        }),
+
+    // -----------------------------------------------------
+    // DOCUMENTS
+    // -----------------------------------------------------
+
+    addDocument:
+      (document) =>
+
+        set((state) => ({
+
+          documents: [
+            document,
+            ...state.documents
+          ]
+        })),
+
+    removeDocument:
+      (id) =>
+
+        set((state) => ({
+
+          documents:
+            state.documents.filter(
+              doc => doc.id !== id
+            )
+        })),
+
+    // -----------------------------------------------------
+    // LEGACY
+    // -----------------------------------------------------
+
+    setMedicalMemory:
+      (medicalMemory) =>
+
+        set({
+          medicalMemory
+        }),
+
+    setLastAnalysis:
+      (lastAnalysis) =>
+
+        set({
+          lastAnalysis
         })
   }));
