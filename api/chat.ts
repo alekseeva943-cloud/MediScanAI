@@ -166,7 +166,7 @@ export default async function handler(
 
     const lastMessage =
       safeMessages[
-        safeMessages.length - 1
+      safeMessages.length - 1
       ];
 
     if (!lastMessage) {
@@ -308,6 +308,9 @@ ${recentConversation}
     // -----------------------------------------------------
 
     const safeMemory = {
+      
+      patientProfile:
+        patientProfile || {},
 
       symptoms:
         safeArray(activeCase?.symptoms),
