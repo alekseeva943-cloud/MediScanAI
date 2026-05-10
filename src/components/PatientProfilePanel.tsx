@@ -1,15 +1,17 @@
-
 // src/components/PatientProfilePanel.tsx
 
 // Панель профиля пациента.
 //
-// Нужна для:
-// - просмотра AI state,
-// - отладки profile,
-// - понимания reasoning AI.
+// Безопасный рендер profile-данных.
 //
-// Позже можно превратить
-// в полноценную medical card.
+// Что исправлено:
+//
+// - убран опасный прямой рендер объектов
+// - добавлен universal safe renderer
+// - React больше не падает на object
+// - добавлена безопасная обработка массивов
+// - добавлена базовая типизация
+// - UI теперь устойчив к нестабильному GPT output
 
 import {
   X,
@@ -32,17 +34,162 @@ interface Props {
 
   onClose: () => void;
 
-  profile: any;
+  profile: unknown;
 }
+
+type SafeObject = Record<
+  string,
+  unknown
+>;
+
+// -----------------------------------
+// SAFE VALUE RENDER
+// -----------------------------------
+
+const renderValue = (
+  value: unknown
+): string => {
+
+  // NULL / UNDEFINED
+
+  if (
+    value === null
+    ||
+    value === undefined
+  ) {
+
+    return "—";
+  }
+
+  // STRING
+
+  if (
+    typeof value === "string"
+  ) {
+
+    return value;
+  }
+
+  // NUMBER
+
+  if (
+    typeof value === "number"
+  ) {
+
+    return String(value);
+  }
+
+  // BOOLEAN
+
+  if (
+    typeof value === "boolean"
+  ) {
+
+    return value
+      ? "Да"
+      : "Нет";
+  }
+
+  // ARRAY
+
+  if (
+    Array.isArray(value)
+  ) {
+
+    return value
+      .map((item) => renderValue(item))
+      .join(", ");
+  }
+
+  // OBJECT
+
+  if (
+    typeof value === "object"
+  ) {
+
+    const obj = value as SafeObject;
+
+    // symptom + anatomy
+
+    if (
+      obj.symptom
+      &&
+      obj.anatomy
+    ) {
+
+      return `${obj.symptom} (${obj.anatomy})`;
+    }
+
+    // type + location
+
+    if (
+      obj.type
+      &&
+      obj.location
+    ) {
+
+      return `${obj.type} (${obj.location})`;
+    }
+
+    // symptom only
+
+    if (
+      obj.symptom
+    ) {
+
+      return String(obj.symptom);
+    }
+
+    // location only
+
+    if (
+      obj.location
+    ) {
+
+      return String(obj.location);
+    }
+
+    // type only
+
+    if (
+      obj.type
+    ) {
+
+      return String(obj.type);
+    }
+
+    // name
+
+    if (
+      obj.name
+    ) {
+
+      return String(obj.name);
+    }
+
+    // fallback
+
+    return JSON.stringify(obj);
+  }
+
+  return String(value);
+};
 
 // -----------------------------------
 // SECTION
 // -----------------------------------
 
+interface SectionProps {
+
+  title: string;
+
+  children: React.ReactNode;
+}
+
 const Section = ({
   title,
   children
-}: any) => (
+}: SectionProps) => (
 
   <div className="space-y-2">
 
@@ -61,17 +208,20 @@ const Section = ({
 // ARRAY BLOCK
 // -----------------------------------
 
+interface ArrayBlockProps {
+
+  items: unknown;
+}
+
 const ArrayBlock = ({
   items
-}: any) => {
+}: ArrayBlockProps) => {
 
   const safeItems = Array.isArray(items)
     ? items
     : [];
 
-  // -----------------------------------
   // EMPTY
-  // -----------------------------------
 
   if (safeItems.length === 0) {
 
@@ -82,96 +232,7 @@ const ArrayBlock = ({
     );
   }
 
-  // -----------------------------------
-  // SAFE RENDER
-  // -----------------------------------
-
-  const renderItem = (
-    item: any
-  ): string => {
-
-    // STRING
-
-    if (
-      typeof item === "string"
-    ) {
-
-      return item;
-    }
-
-    // NULL
-
-    if (!item) {
-
-      return "—";
-    }
-
-    // OBJECT
-
-    if (
-      typeof item === "object"
-    ) {
-
-      // symptom + anatomy
-
-      if (
-        item.symptom
-        &&
-        item.anatomy
-      ) {
-
-        return `${item.symptom} (${item.anatomy})`;
-      }
-
-      // type + location
-
-      if (
-        item.type
-        &&
-        item.location
-      ) {
-
-        return `${item.type} (${item.location})`;
-      }
-
-      // type only
-
-      if (
-        item.type
-      ) {
-
-        return item.type;
-      }
-
-      // symptom only
-
-      if (
-        item.symptom
-      ) {
-
-        return item.symptom;
-      }
-
-      // location only
-
-      if (
-        item.location
-      ) {
-
-        return item.location;
-      }
-
-      // fallback
-
-      return JSON.stringify(item);
-    }
-
-    return String(item);
-  };
-
-  // -----------------------------------
   // RENDER
-  // -----------------------------------
 
   return (
 
@@ -179,18 +240,18 @@ const ArrayBlock = ({
 
       {safeItems.map(
         (
-          item: any,
-          i: number
+          item,
+          i
         ) => (
 
           <div
 
-            key={i}
+            key={`${renderValue(item)}-${i}`}
 
             className="px-2 py-1 rounded-full bg-white border border-slate-200 text-xs text-slate-700"
           >
 
-            {renderItem(item)}
+            {renderValue(item)}
 
           </div>
         )
@@ -209,6 +270,30 @@ export const PatientProfilePanel = ({
   onClose,
   profile
 }: Props) => {
+
+  const safeProfile = (
+    typeof profile === "object"
+    &&
+    profile !== null
+  )
+    ? profile as SafeObject
+    : {};
+
+  const pain = (
+    typeof safeProfile.pain === "object"
+    &&
+    safeProfile.pain !== null
+  )
+    ? safeProfile.pain as SafeObject
+    : {};
+
+  const trauma = (
+    typeof safeProfile.trauma === "object"
+    &&
+    safeProfile.trauma !== null
+  )
+    ? safeProfile.trauma as SafeObject
+    : {};
 
   return (
 
@@ -314,7 +399,9 @@ export const PatientProfilePanel = ({
               <Section title="Главная жалоба">
 
                 <div className="text-sm text-slate-700">
-                  {profile?.mainComplaint || "Нет данных"}
+                  {renderValue(
+                    safeProfile.mainComplaint
+                  )}
                 </div>
 
               </Section>
@@ -331,7 +418,9 @@ export const PatientProfilePanel = ({
                       Локализация:
                     </span>{" "}
 
-                    {profile?.pain?.location || "—"}
+                    {renderValue(
+                      pain.location
+                    )}
 
                   </div>
 
@@ -341,7 +430,9 @@ export const PatientProfilePanel = ({
                       Характер:
                     </span>{" "}
 
-                    {profile?.pain?.character || "—"}
+                    {renderValue(
+                      pain.character
+                    )}
 
                   </div>
 
@@ -351,7 +442,9 @@ export const PatientProfilePanel = ({
                       Длительность:
                     </span>{" "}
 
-                    {profile?.pain?.duration || "—"}
+                    {renderValue(
+                      pain.duration
+                    )}
 
                   </div>
 
@@ -364,7 +457,7 @@ export const PatientProfilePanel = ({
               <Section title="Симптомы">
 
                 <ArrayBlock
-                  items={profile?.symptoms}
+                  items={safeProfile.symptoms}
                 />
 
               </Section>
@@ -374,7 +467,7 @@ export const PatientProfilePanel = ({
               <Section title="Отрицательные симптомы">
 
                 <ArrayBlock
-                  items={profile?.negativeFindings}
+                  items={safeProfile.negativeFindings}
                 />
 
               </Section>
@@ -391,9 +484,9 @@ export const PatientProfilePanel = ({
                       Наличие:
                     </span>{" "}
 
-                    {profile?.trauma?.exists
-                      ? "Да"
-                      : "Нет"}
+                    {renderValue(
+                      trauma.exists
+                    )}
 
                   </div>
 
@@ -403,7 +496,9 @@ export const PatientProfilePanel = ({
                       Механизм:
                     </span>{" "}
 
-                    {profile?.trauma?.mechanism || "—"}
+                    {renderValue(
+                      trauma.mechanism
+                    )}
 
                   </div>
 
@@ -417,7 +512,7 @@ export const PatientProfilePanel = ({
 
                 <ArrayBlock
                   items={
-                    profile?.functionalLimitations
+                    safeProfile.functionalLimitations
                   }
                 />
 
@@ -429,7 +524,7 @@ export const PatientProfilePanel = ({
 
                 <ArrayBlock
                   items={
-                    profile?.possibleTriggers
+                    safeProfile.possibleTriggers
                   }
                 />
 
@@ -440,7 +535,7 @@ export const PatientProfilePanel = ({
               <Section title="Red Flags">
 
                 <ArrayBlock
-                  items={profile?.redFlags}
+                  items={safeProfile.redFlags}
                 />
 
               </Section>
@@ -451,7 +546,7 @@ export const PatientProfilePanel = ({
 
                 <ArrayBlock
                   items={
-                    profile?.resolvedTopics
+                    safeProfile.resolvedTopics
                   }
                 />
 
@@ -463,7 +558,7 @@ export const PatientProfilePanel = ({
 
                 <ArrayBlock
                   items={
-                    profile?.missingTopics
+                    safeProfile.missingTopics
                   }
                 />
 
@@ -493,4 +588,3 @@ export const PatientProfilePanel = ({
     </AnimatePresence>
   );
 };
-
