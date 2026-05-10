@@ -310,11 +310,29 @@ export class PatientProfileUpdater {
     }
 
     async updateProfile(
+
         currentProfile: PatientProfile,
-        userMessage: string
+
+        userMessage: string,
+
+        history: any[] = []
+
     ): Promise<PatientProfile> {
 
         try {
+
+            const recentConversation =
+
+                history
+
+                    .slice(-6)
+
+                    .map((m: any) =>
+
+                        `${m.role}: ${String(m.content)}`
+                    )
+
+                    .join("\n");
 
             const prompt = `
 

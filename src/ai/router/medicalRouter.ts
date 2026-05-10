@@ -212,17 +212,24 @@ If negativeFindings contains:
 DO NOT ask again about swelling.
 
 --------------------------------------------------
-LOW RISK EXAMPLES
+--------------------------------------------------
+INTERVIEW MINIMUM REQUIREMENTS
 --------------------------------------------------
 
-Examples of cases that usually should finish FAST:
+Before interview can finish,
+profile should usually contain:
 
-- shoulder pain after minor strain
-- mild irritation after spicy food
-- mild muscle pain
-- uncomplicated viral symptoms
+- main complaint
+- symptom location
+- symptom character OR severity
+- duration OR trigger
+- at least one clarification question completed
 
-Avoid over-investigation.
+If profile is too sparse:
+
+DO NOT finish interview yet.
+
+Continue clarification.
 
 --------------------------------------------------
 EMERGENCY RED FLAGS

@@ -53,6 +53,43 @@ Convert chaotic natural language
 into structured medical state.
 
 --------------------------------------------------
+CRITICAL EXTRACTION PRIORITY
+--------------------------------------------------
+
+mainComplaint MUST preserve:
+
+- anatomy
+- symptom type
+- severity if obvious
+- important context
+- obvious trigger if clinically important
+
+BAD:
+- "боль"
+- "дискомфорт"
+- "раздражение"
+
+GOOD:
+- "жгучая боль в анусе после острой еды"
+- "резкая боль в плече после удара"
+- "кашель с температурой"
+- "жжение в желудке после алкоголя"
+
+NEVER oversimplify complaints.
+
+If anatomy is known:
+DO NOT remove anatomy.
+
+If trigger is obvious:
+preserve trigger context.
+
+If symptom character is known:
+preserve symptom character.
+
+If user adds new detail:
+merge it into existing complaint.
+
+--------------------------------------------------
 IMPORTANT EXTRACTION LOGIC
 --------------------------------------------------
 
