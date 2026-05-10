@@ -17,11 +17,14 @@ import type {
 
 export const useMedicalAI = () => {
 
+
   const {
 
     messages,
 
     medicalMemory,
+
+    patientProfile,
 
     lastAnalysis,
 
@@ -38,6 +41,8 @@ export const useMedicalAI = () => {
     setLastAnalysis
 
   } = useChatStore();
+
+
 
   const processResponse = useCallback(
 
@@ -85,8 +90,7 @@ export const useMedicalAI = () => {
               userMessage
             ],
 
-            medicalMemory
-              ?.patientProfile,
+            patientProfile,
 
             null,
 
