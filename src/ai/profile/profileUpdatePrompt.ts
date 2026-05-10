@@ -213,6 +213,18 @@ Examples:
 symptoms:
 ONLY actual symptoms.
 
+Use specific symptoms.
+
+BAD:
+- "проблема"
+- "дискомфорт"
+
+GOOD:
+- "жжение"
+- "резкая боль"
+- "зуд"
+- "кровь"
+
 Examples:
 - "боль"
 - "кашель"
@@ -230,7 +242,24 @@ Examples:
 --------------------------------------------------
 
 pain.location:
-Body location.
+Exact anatomical location of symptom.
+
+VERY IMPORTANT:
+
+Always preserve anatomy.
+
+Examples:
+
+- "болит плечо" -> "плечо"
+- "жжение в анусе" -> "анус"
+- "боль в желудке" -> "желудок"
+- "болит поясница" -> "поясница"
+
+If anatomy is obvious:
+extract it aggressively.
+
+Never leave location empty
+if body part is mentioned.
 
 Examples:
 - "плечо"
@@ -279,11 +308,15 @@ Examples:
 --------------------------------------------------
 
 functionalLimitations:
-What patient cannot do.
+What makes symptoms worse
+or what patient cannot do normally.
 
 Examples:
+
 - "не может поднять руку"
 - "больно ходить"
+- "жжение при дефекации"
+- "боль при глотании"
 
 --------------------------------------------------
 
