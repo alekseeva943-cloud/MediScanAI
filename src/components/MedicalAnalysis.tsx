@@ -226,7 +226,7 @@ export const MedicalAnalysis = ({
                   />
 
                   <div className="text-sm text-slate-700 leading-6">
-                    {item}
+                    {renderItem(item)}
                   </div>
 
                 </div>
@@ -260,7 +260,7 @@ export const MedicalAnalysis = ({
                   className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-sm text-slate-700 leading-6"
                 >
 
-                  {item}
+                  {renderItem(item)}
 
                 </div>
               )
@@ -299,7 +299,7 @@ export const MedicalAnalysis = ({
                   />
 
                   <div className="text-sm text-amber-800 leading-6">
-                    {item}
+                    {renderItem(item)}
                   </div>
 
                 </div>
@@ -333,7 +333,7 @@ export const MedicalAnalysis = ({
                   className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-sm text-emerald-900 leading-6"
                 >
 
-                  {item}
+                  {renderItem(item)}
 
                 </div>
               )
@@ -448,7 +448,7 @@ export const MedicalAnalysis = ({
                   />
 
                   <div className="text-sm text-teal-900 leading-6">
-                    {item}
+                    {renderItem(item)}
                   </div>
 
                 </div>
