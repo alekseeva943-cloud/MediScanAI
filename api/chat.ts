@@ -1,19 +1,13 @@
 // api/chat.ts
 
 import type {
-
   VercelRequest,
-
   VercelResponse
-
 } from '@vercel/node';
 
 import type {
-
   MedicalCase,
-
   PatientProfile
-
 } from '../src/types';
 
 // -----------------------------------------------------
@@ -82,6 +76,9 @@ ACTIVE MEDICAL CASE:
 Главная жалоба:
 ${medicalCase.chiefComplaint || 'Не указана'}
 
+Симптомы:
+${safeArray(medicalCase.symptoms).join(', ') || 'Нет'}
+
 Подтвержденные симптомы:
 ${safeArray(medicalCase.confirmedSymptoms).join(', ') || 'Нет'}
 
@@ -110,11 +107,8 @@ ${medicalCase.aiSummary || 'Нет'}
 // -----------------------------------------------------
 
 export default async function handler(
-
   req: VercelRequest,
-
   res: VercelResponse
-
 ) {
 
   if (req.method !== 'POST') {
@@ -163,7 +157,7 @@ export default async function handler(
 
     const lastMessage =
       safeMessages[
-      safeMessages.length - 1
+        safeMessages.length - 1
       ];
 
     if (!lastMessage) {
@@ -249,7 +243,7 @@ export default async function handler(
     }
 
     // -----------------------------------------------------
-    // MEDICAL CONTEXT
+    // CONTEXT
     // -----------------------------------------------------
 
     const patientSummary =
@@ -267,11 +261,12 @@ export default async function handler(
         .slice(-4)
         .map((m: any) =>
 
-          `${m.role}: ${typeof m.content === 'string'
+          `${m.role}: ${
+            typeof m.content === 'string'
 
-            ? m.content
+              ? m.content
 
-            : JSON.stringify(m.content)
+              : JSON.stringify(m.content)
           }`
         )
         .join('\n');
@@ -288,175 +283,87 @@ ${recentConversation}
 `;
 
     // -----------------------------------------------------
+    // LEGACY MEMORY ADAPTER
+    // -----------------------------------------------------
+
+    const legacyMemory = {
+
+      symptoms:
+        safeArray(
+          activeCase?.symptoms
+        ),
+
+      medications:
+        safeArray(
+          patientProfile?.medications
+        ),
+
+      diagnoses:
+        safeArray(
+          activeCase?.possibleConditions
+        ),
+
+      allergies:
+        safeArray(
+          patientProfile?.allergies
+        ),
+
+      riskFactors:
+        safeArray(
+          patientProfile?.riskFactors
+        ),
+
+      uploadedDocuments:
+        safeArray(
+          activeCase?.uploadedDocuments
+        ),
+
+      extractedFacts: [],
+
+      chronicConditions:
+        safeArray(
+          patientProfile?.chronicConditions
+        ),
+
+      surgeries:
+        safeArray(
+          patientProfile?.surgeries
+        ),
+
+      familyHistory:
+        safeArray(
+          patientProfile?.familyHistory
+        ),
+
+      age:
+        patientProfile?.age || '',
+
+      sex:
+        patientProfile?.gender || ''
+    };
+
+    // -----------------------------------------------------
     // AI PROCESSING
     // -----------------------------------------------------
 
     const result =
-  await orchestrator.processRequest(
+      await orchestrator.processRequest(
 
-    userInput,
+        userInput,
 
-    imageParts,
+        imageParts,
 
-    [
+        [
+          {
+            role: 'system',
+            content: medicalContext
+          }
+        ],
 
-      {
-        role: 'system',
-        content: medicalContext
-      }
-    ],
+        legacyMemory,
 
-    patientProfile || {},
-
-    lastAnalysis || null
-  );
-
-    // -----------------------------------------------------
-    // SAFE JSON PARSE
-    // -----------------------------------------------------
-
-    let parsedResponse: any = null;
-
-    try {
-
-      if (
-
-        typeof result?.text === 'string'
-
-        &&
-
-        result.text
-          .trim()
-          .startsWith('{')
-
-      ) {
-
-        parsedResponse =
-          JSON.parse(
-            result.text
-          );
-      }
-
-    } catch (err) {
-
-      console.error(
-        'JSON parse failed:',
-        err
+        lastAnalysis || null
       );
-    }
-
-    // -----------------------------------------------------
-    // FINAL TEXT
-    // -----------------------------------------------------
-
-    let finalText =
-
-      parsedResponse?.text
-
-      ||
-
-      result?.text
-
-      ||
-
-      'Не удалось сформировать ответ';
-
-    // -----------------------------------------------------
-    // QUICK REPLIES
-    // -----------------------------------------------------
-
-    let finalQuickReplies: string[] = [];
-
-    if (
-
-      Array.isArray(
-        parsedResponse?.quick_replies
-      )
-
-    ) {
-
-      finalQuickReplies =
-        parsedResponse
-          .quick_replies;
-
-    } else if (
-
-      Array.isArray(
-        result?.quickReplies
-      )
-
-    ) {
-
-      finalQuickReplies =
-        result.quickReplies;
-    }
-
-    // -----------------------------------------------------
-    // ALWAYS ADD SKIP
-    // -----------------------------------------------------
-
-    if (
-
-      finalQuickReplies.length > 0
-
-      &&
-
-      !finalQuickReplies.includes(
-        'Пропустить'
-      )
-
-    ) {
-
-      finalQuickReplies.push(
-        'Пропустить'
-      );
-    }
-
-    // -----------------------------------------------------
-    // INTERVIEW COMPLETED
-    // -----------------------------------------------------
-
-    const interviewCompleted =
-
-      parsedResponse
-        ?.interview_completed
-
-      ||
-
-      result?.decision
-        ?.interviewCompleted
-
-      ||
-
-      false;
-
-    // -----------------------------------------------------
-    // FINAL ACTIONS
-    // -----------------------------------------------------
-
-    if (
-
-      interviewCompleted
-
-      &&
-
-      finalQuickReplies.length === 0
-
-    ) {
-
-      finalQuickReplies = [
-
-        '📄 Создать отчет',
-
-        '🩻 Загрузить МРТ',
-
-        '🧪 Прикрепить анализы',
-
-        '📷 Загрузить фото',
-
-        '➕ Добавить симптомы'
-      ];
-    }
 
     // -----------------------------------------------------
     // RESPONSE
@@ -465,34 +372,13 @@ ${recentConversation}
     return res.status(200).json({
 
       text:
-        finalText,
+        result?.text || '',
 
-      decision: {
-
-        ...(result?.decision || {}),
-
-        mode:
-
-          interviewCompleted
-
-            ? 'FULL_MEDICAL_ANALYSIS'
-
-            : (
-
-              parsedResponse
-                ?.render_mode
-
-              ||
-
-              result?.decision
-                ?.mode
-            ),
-
-        interviewCompleted
-      },
+      decision:
+        result?.decision || {},
 
       quickReplies:
-        finalQuickReplies,
+        result?.quickReplies || [],
 
       updatedMemory:
         result?.updatedMemory || null,
@@ -500,7 +386,10 @@ ${recentConversation}
       lastAnalysis:
         result?.lastAnalysis || null,
 
-      interviewCompleted
+      interviewCompleted:
+
+        result?.decision
+          ?.interviewCompleted || false
     });
 
   } catch (error: any) {
