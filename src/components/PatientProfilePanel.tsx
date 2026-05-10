@@ -11,443 +11,452 @@
 // в полноценную medical card.
 
 import {
-  X,
-  Brain,
-  Activity,
-  AlertTriangle
+    X,
+    Brain,
+    Activity,
+    AlertTriangle
 } from "lucide-react";
 
 import {
-  motion,
-  AnimatePresence
+    motion,
+    AnimatePresence
 } from "motion/react";
 
 interface Props {
 
-  isOpen: boolean;
+    isOpen: boolean;
 
-  onClose: () => void;
+    onClose: () => void;
 
-  profile: any;
+    profile: any;
 }
 
 const Section = ({
-  title,
-  children
+    title,
+    children
 }: any) => (
 
-  <div className="space-y-2">
+    <div className="space-y-2">
 
-    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">
-      {title}
-    </h3>
+        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">
+            {title}
+        </h3>
 
-    <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
-      {children}
+        <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+            {children}
+        </div>
+
     </div>
-
-  </div>
 );
 
 const ArrayBlock = ({
-  items
+    items
 }: any) => {
 
-  // -----------------------------------
-  // SAFE NORMALIZE
-  // -----------------------------------
+    // -----------------------------------
+    // SAFE NORMALIZE
+    // -----------------------------------
 
-  const safeItems =
+    const safeItems =
 
-    Array.isArray(items)
+        Array.isArray(items)
 
-      ? items
+            ? items
 
-          .map((item) => {
+                .map((item) => {
 
-            // -----------------------------
-            // STRING
-            // -----------------------------
+                    // -----------------------------
+                    // STRING
+                    // -----------------------------
 
-            if (
-              typeof item === "string"
-            ) {
+                    if (
+                        typeof item === "string"
+                    ) {
 
-              return item;
-            }
+                        return item;
+                    }
 
-            // -----------------------------
-            // NUMBER
-            // -----------------------------
+                    // -----------------------------
+                    // NUMBER
+                    // -----------------------------
 
-            if (
-              typeof item === "number"
-            ) {
+                    if (
+                        typeof item === "number"
+                    ) {
 
-              return String(item);
-            }
+                        return String(item);
+                    }
 
-            // -----------------------------
-            // OBJECT
-            // -----------------------------
+                    // -----------------------------
+                    // OBJECT
+                    // -----------------------------
 
-            if (
-              item
-              &&
-              typeof item === "object"
-            ) {
+                    if (
+                        item
+                        &&
+                        typeof item === "object"
+                    ) {
 
-              // symptom
-              if (item.symptom) {
-                return item.symptom;
-              }
+                        // symptom
+                        if (item.symptom) {
+                            return item.symptom;
+                        }
 
-              // name
-              if (item.name) {
-                return item.name;
-              }
+                        // name
+                        if (item.name) {
+                            return item.name;
+                        }
 
-              // title
-              if (item.title) {
-                return item.title;
-              }
+                        // title
+                        if (item.title) {
+                            return item.title;
+                        }
 
-              // fallback
-              return JSON.stringify(item);
-            }
+                        // fallback
+                        return JSON.stringify(item);
+                    }
 
-            return null;
-          })
+                    return null;
+                })
 
-          .filter(Boolean)
+                .filter(Boolean)
 
-      : [];
+            : [];
 
-  // -----------------------------------
-  // EMPTY
-  // -----------------------------------
+    // -----------------------------------
+    // EMPTY
+    // -----------------------------------
 
-  if (
-    safeItems.length === 0
-  ) {
+    if (
+        safeItems.length === 0
+    ) {
+
+        return (
+
+            <span className="text-slate-400 text-sm">
+                Нет данных
+            </span>
+        );
+    }
+
+    // -----------------------------------
+    // RENDER
+    // -----------------------------------
 
     return (
 
-      <span className="text-slate-400 text-sm">
-        Нет данных
-      </span>
+        <div className="flex flex-wrap gap-2">
+
+            {safeItems.map(
+                (
+                    item: any,
+                    i: number
+                ) => (
+
+                    <div
+
+                        key={i}
+
+                        className="px-2 py-1 rounded-full bg-white border border-slate-200 text-xs text-slate-700"
+                    >
+
+                        {typeof item === "string"
+
+                            ? item
+
+                            : item?.type
+
+                            || JSON.stringify(item)
+                        }
+
+                    </div>
+                )
+            )}
+
+        </div>
     );
-  }
-
-  // -----------------------------------
-  // RENDER
-  // -----------------------------------
-
-  return (
-
-    <div className="flex flex-wrap gap-2">
-
-      {safeItems.map(
-        (
-          item: string,
-          i: number
-        ) => (
-
-          <div
-
-            key={i}
-
-            className="px-2 py-1 rounded-full bg-white border border-slate-200 text-xs text-slate-700"
-          >
-            {item}
-          </div>
-        )
-      )}
-
-    </div>
-  );
 };
 
 export const PatientProfilePanel = ({
-  isOpen,
-  onClose,
-  profile
+    isOpen,
+    onClose,
+    profile
 }: Props) => {
 
-  return (
+    return (
 
-    <AnimatePresence>
+        <AnimatePresence>
 
-      {isOpen && (
+            {isOpen && (
 
-        <>
+                <>
 
-          {/* BACKDROP */}
+                    {/* BACKDROP */}
 
-          <motion.div
+                    <motion.div
 
-            initial={{
-              opacity: 0
-            }}
+                        initial={{
+                            opacity: 0
+                        }}
 
-            animate={{
-              opacity: 1
-            }}
+                        animate={{
+                            opacity: 1
+                        }}
 
-            exit={{
-              opacity: 0
-            }}
+                        exit={{
+                            opacity: 0
+                        }}
 
-            onClick={onClose}
+                        onClick={onClose}
 
-            className="absolute inset-0 bg-black/40 z-40"
-          />
+                        className="absolute inset-0 bg-black/40 z-40"
+                    />
 
-          {/* PANEL */}
+                    {/* PANEL */}
 
-          <motion.div
+                    <motion.div
 
-            initial={{
-              x: 420
-            }}
+                        initial={{
+                            x: 420
+                        }}
 
-            animate={{
-              x: 0
-            }}
+                        animate={{
+                            x: 0
+                        }}
 
-            exit={{
-              x: 420
-            }}
+                        exit={{
+                            x: 420
+                        }}
 
-            transition={{
-              type: "spring",
-              damping: 24
-            }}
+                        transition={{
+                            type: "spring",
+                            damping: 24
+                        }}
 
-            className="absolute top-0 right-0 w-[420px] h-full bg-white z-50 shadow-2xl border-l border-slate-200 flex flex-col"
-          >
+                        className="absolute top-0 right-0 w-[420px] h-full bg-white z-50 shadow-2xl border-l border-slate-200 flex flex-col"
+                    >
 
-            {/* HEADER */}
+                        {/* HEADER */}
 
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
 
-              <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3">
 
-                <div className="w-10 h-10 rounded-2xl bg-teal-50 flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-2xl bg-teal-50 flex items-center justify-center">
 
-                  <Brain
-                    size={18}
-                    className="text-teal-600"
-                  />
+                                    <Brain
+                                        size={18}
+                                        className="text-teal-600"
+                                    />
 
-                </div>
+                                </div>
 
-                <div>
+                                <div>
 
-                  <h2 className="font-bold text-slate-800">
-                    Профиль пациента
-                  </h2>
+                                    <h2 className="font-bold text-slate-800">
+                                        Профиль пациента
+                                    </h2>
 
-                  <p className="text-xs text-slate-400">
-                    AI Clinical State
-                  </p>
+                                    <p className="text-xs text-slate-400">
+                                        AI Clinical State
+                                    </p>
 
-                </div>
+                                </div>
 
-              </div>
+                            </div>
 
-              <button
+                            <button
 
-                onClick={onClose}
+                                onClick={onClose}
 
-                className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center"
-              >
+                                className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center"
+                            >
 
-                <X size={18} />
+                                <X size={18} />
 
-              </button>
+                            </button>
 
-            </div>
+                        </div>
 
-            {/* CONTENT */}
+                        {/* CONTENT */}
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
-              {/* MAIN */}
+                            {/* MAIN */}
 
-              <Section title="Главная жалоба">
+                            <Section title="Главная жалоба">
 
-                <div className="text-sm text-slate-700">
-                  {profile?.mainComplaint || "Нет данных"}
-                </div>
+                                <div className="text-sm text-slate-700">
+                                    {profile?.mainComplaint || "Нет данных"}
+                                </div>
 
-              </Section>
+                            </Section>
 
-              {/* PAIN */}
+                            {/* PAIN */}
 
-              <Section title="Боль">
+                            <Section title="Боль">
 
-                <div className="space-y-2 text-sm">
+                                <div className="space-y-2 text-sm">
 
-                  <div>
-                    <span className="text-slate-400">
-                      Локализация:
-                    </span>{" "}
+                                    <div>
+                                        <span className="text-slate-400">
+                                            Локализация:
+                                        </span>{" "}
 
-                    {profile?.pain?.location || "—"}
-                  </div>
+                                        {profile?.pain?.location || "—"}
+                                    </div>
 
-                  <div>
-                    <span className="text-slate-400">
-                      Характер:
-                    </span>{" "}
+                                    <div>
+                                        <span className="text-slate-400">
+                                            Характер:
+                                        </span>{" "}
 
-                    {profile?.pain?.character || "—"}
-                  </div>
+                                        {profile?.pain?.character || "—"}
+                                    </div>
 
-                  <div>
-                    <span className="text-slate-400">
-                      Длительность:
-                    </span>{" "}
+                                    <div>
+                                        <span className="text-slate-400">
+                                            Длительность:
+                                        </span>{" "}
 
-                    {profile?.pain?.duration || "—"}
-                  </div>
+                                        {profile?.pain?.duration || "—"}
+                                    </div>
 
-                </div>
+                                </div>
 
-              </Section>
+                            </Section>
 
-              {/* SYMPTOMS */}
+                            {/* SYMPTOMS */}
 
-              <Section title="Симптомы">
+                            <Section title="Симптомы">
 
-                <ArrayBlock
-                  items={profile?.symptoms}
-                />
+                                <ArrayBlock
+                                    items={profile?.symptoms}
+                                />
 
-              </Section>
+                            </Section>
 
-              {/* NEGATIVE */}
+                            {/* NEGATIVE */}
 
-              <Section title="Отрицательные симптомы">
+                            <Section title="Отрицательные симптомы">
 
-                <ArrayBlock
-                  items={profile?.negativeFindings}
-                />
+                                <ArrayBlock
+                                    items={profile?.negativeFindings}
+                                />
 
-              </Section>
+                            </Section>
 
-              {/* TRAUMA */}
+                            {/* TRAUMA */}
 
-              <Section title="Травма">
+                            <Section title="Травма">
 
-                <div className="space-y-2 text-sm">
+                                <div className="space-y-2 text-sm">
 
-                  <div>
+                                    <div>
 
-                    <span className="text-slate-400">
-                      Наличие:
-                    </span>{" "}
+                                        <span className="text-slate-400">
+                                            Наличие:
+                                        </span>{" "}
 
-                    {profile?.trauma?.exists
-                      ? "Да"
-                      : "Нет"}
+                                        {profile?.trauma?.exists
+                                            ? "Да"
+                                            : "Нет"}
 
-                  </div>
+                                    </div>
 
-                  <div>
+                                    <div>
 
-                    <span className="text-slate-400">
-                      Механизм:
-                    </span>{" "}
+                                        <span className="text-slate-400">
+                                            Механизм:
+                                        </span>{" "}
 
-                    {profile?.trauma?.mechanism || "—"}
+                                        {profile?.trauma?.mechanism || "—"}
 
-                  </div>
+                                    </div>
 
-                </div>
+                                </div>
 
-              </Section>
+                            </Section>
 
-              {/* LIMITATIONS */}
+                            {/* LIMITATIONS */}
 
-              <Section title="Ограничения">
+                            <Section title="Ограничения">
 
-                <ArrayBlock
-                  items={
-                    profile?.functionalLimitations
-                  }
-                />
+                                <ArrayBlock
+                                    items={
+                                        profile?.functionalLimitations
+                                    }
+                                />
 
-              </Section>
+                            </Section>
 
-              {/* TRIGGERS */}
+                            {/* TRIGGERS */}
 
-              <Section title="Триггеры">
+                            <Section title="Триггеры">
 
-                <ArrayBlock
-                  items={
-                    profile?.possibleTriggers
-                  }
-                />
+                                <ArrayBlock
+                                    items={
+                                        profile?.possibleTriggers
+                                    }
+                                />
 
-              </Section>
+                            </Section>
 
-              {/* RED FLAGS */}
+                            {/* RED FLAGS */}
 
-              <Section title="Red Flags">
+                            <Section title="Red Flags">
 
-                <ArrayBlock
-                  items={profile?.redFlags}
-                />
+                                <ArrayBlock
+                                    items={profile?.redFlags}
+                                />
 
-              </Section>
+                            </Section>
 
-              {/* RESOLVED */}
+                            {/* RESOLVED */}
 
-              <Section title="Закрытые темы">
+                            <Section title="Закрытые темы">
 
-                <ArrayBlock
-                  items={
-                    profile?.resolvedTopics
-                  }
-                />
+                                <ArrayBlock
+                                    items={
+                                        profile?.resolvedTopics
+                                    }
+                                />
 
-              </Section>
+                            </Section>
 
-              {/* MISSING */}
+                            {/* MISSING */}
 
-              <Section title="Чего не хватает">
+                            <Section title="Чего не хватает">
 
-                <ArrayBlock
-                  items={
-                    profile?.missingTopics
-                  }
-                />
+                                <ArrayBlock
+                                    items={
+                                        profile?.missingTopics
+                                    }
+                                />
 
-              </Section>
+                            </Section>
 
-            </div>
+                        </div>
 
-            {/* FOOTER */}
+                        {/* FOOTER */}
 
-            <div className="p-4 border-t border-slate-100 bg-slate-50">
+                        <div className="p-4 border-t border-slate-100 bg-slate-50">
 
-              <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
 
-                <Activity size={14} />
+                                <Activity size={14} />
 
-                Profile обновляется в realtime
+                                Profile обновляется в realtime
 
-              </div>
+                            </div>
 
-            </div>
+                        </div>
 
-          </motion.div>
+                    </motion.div>
 
-        </>
-      )}
+                </>
+            )}
 
-    </AnimatePresence>
-  );
+        </AnimatePresence>
+    );
 };

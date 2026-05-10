@@ -400,6 +400,73 @@ Return ONLY valid JSON.
                 );
 
             // -----------------------------------
+            // AUTO BUILD MAIN COMPLAINT
+            // -----------------------------------
+
+            if (
+                !mergedProfile.mainComplaint
+            ) {
+
+                const firstSymptom =
+
+                    Array.isArray(
+                        mergedProfile.symptoms
+                    )
+
+                        ? mergedProfile.symptoms[0]
+
+                        : "";
+
+                const painLocation =
+                    mergedProfile?.pain?.location;
+
+                if (
+                    firstSymptom &&
+                    painLocation
+                ) {
+
+                    mergedProfile.mainComplaint =
+                        `${firstSymptom} в ${painLocation}`;
+                }
+
+                else if (firstSymptom) {
+
+                    mergedProfile.mainComplaint =
+                        firstSymptom;
+                }
+            }
+
+            // -----------------------------------
+            // IMPROVE EXISTING COMPLAINT
+            // -----------------------------------
+
+            if (
+                mergedProfile.mainComplaint
+            ) {
+
+                const trigger =
+
+                    mergedProfile
+                        ?.possibleTriggers?.[0];
+
+                if (
+
+                    trigger
+
+                    &&
+
+                    !mergedProfile
+                        .mainComplaint
+                        .includes(trigger)
+
+                ) {
+
+                    mergedProfile.mainComplaint +=
+                        ` после ${trigger}`;
+                }
+            }
+
+            // -----------------------------------
             // NORMALIZE
             // -----------------------------------
 
