@@ -28,6 +28,30 @@ import type {
 
 } from "../types/index.js";
 
+import {
+  buildClarificationPrompt
+} from "../prompts/buildClarificationPrompt.js";
+
+import {
+  buildDiagnosticState
+} from "../interview/buildDiagnosticState.js";
+
+import {
+  buildInterviewState
+} from "../interview/buildInterviewState.js";
+
+import {
+  normalizeMedicalResponse
+} from "../normalization/normalizeMedicalResponse.js";
+
+import {
+  mergeMedicalMemory
+} from "../memory/mergeMedicalMemory.js";
+
+import {
+  validateGeneratedQuestion
+} from "../interview/validateGeneratedQuestion.js";
+
 export class MedicalOrchestrator {
 
   private provider: OpenAIProvider;
@@ -41,7 +65,7 @@ export class MedicalOrchestrator {
     const key =
       apiKey ||
       process.env.OPENAI_API_KEY ||
-      '';
+      "";
 
     this.provider =
       new OpenAIProvider(key);
@@ -131,8 +155,11 @@ ${userInput.slice(0, 4000)}
         );
 
       const cleaned = text
+
         .replace(/```json/g, "")
+
         .replace(/```/g, "")
+
         .trim();
 
       return JSON.parse(cleaned);
@@ -146,149 +173,6 @@ ${userInput.slice(0, 4000)}
 
       return {};
     }
-  }
-
-  // -----------------------------------
-  // BUILD INTERVIEW STATE
-  // -----------------------------------
-
-  private buildInterviewState(
-    history: any[],
-    memory: MedicalMemory
-  ) {
-
-    const assistantMessages =
-      history.filter(
-        (m) => m.role === "assistant"
-      );
-
-    const clarificationCount =
-      assistantMessages.length;
-
-    const previousQuestions =
-      assistantMessages
-        .map((m) => {
-
-          try {
-
-            const parsed =
-              JSON.parse(m.content);
-
-            return parsed?.text || "";
-
-          } catch {
-
-            return m.content || "";
-          }
-
-        })
-        .filter(Boolean)
-        .slice(-12);
-
-    const extractedFacts =
-      memory.extractedFacts || [];
-
-    const joinedFacts =
-      extractedFacts
-        .join(" ")
-        .toLowerCase();
-
-    const obviousFoodIrritation =
-
-      (
-        joinedFacts.includes("остр")
-        ||
-        joinedFacts.includes("халапеньо")
-        ||
-        joinedFacts.includes("шаурм")
-      )
-
-      &&
-
-      (
-        joinedFacts.includes("жжение")
-        ||
-        joinedFacts.includes("зуд")
-      )
-
-      &&
-
-      !joinedFacts.includes("кров")
-      &&
-      !joinedFacts.includes("температ")
-      &&
-      !joinedFacts.includes("рвот")
-      &&
-      !joinedFacts.includes("сильная боль");
-
-    const probableFishScratch =
-
-      (
-        joinedFacts.includes("косточ")
-        ||
-        joinedFacts.includes("рыб")
-      )
-
-      &&
-
-      (
-        joinedFacts.includes("глот")
-        ||
-        joinedFacts.includes("горл")
-      )
-
-      &&
-
-      !joinedFacts.includes("удуш")
-      &&
-      !joinedFacts.includes("не могу дышать")
-      &&
-      !joinedFacts.includes("кров")
-      &&
-      !joinedFacts.includes("температ");
-
-    let confidence:
-      "low" |
-      "medium" |
-      "high" = "low";
-
-    if (
-      obviousFoodIrritation
-      ||
-      probableFishScratch
-    ) {
-
-      confidence = "high";
-
-    } else if (
-      extractedFacts.length >= 4
-    ) {
-
-      confidence = "medium";
-    }
-
-    const shouldFinishInterview =
-
-      confidence === "high"
-
-      ||
-
-      clarificationCount >= 6;
-
-    return {
-
-      clarificationCount,
-
-      previousQuestions,
-
-      confidence,
-
-      shouldFinishInterview,
-
-      obviousFoodIrritation,
-
-      probableFishScratch
-    };
   }
 
   // -----------------------------------
@@ -348,7 +232,7 @@ ${userInput.slice(0, 4000)}
     // -----------------------------------
 
     const interviewState =
-      this.buildInterviewState(
+      buildInterviewState(
         safeHistory,
         memory
       );
@@ -411,113 +295,22 @@ ${userInput.slice(0, 4000)}
     // UPDATE MEMORY
     // -----------------------------------
 
-    const updatedMemory: MedicalMemory = {
+    const updatedMemory =
+      mergeMedicalMemory(
+        memory,
+        extractedMemory
+      );
 
-      ...memory,
+    // -----------------------------------
+    // DIAGNOSTIC STATE
+    // -----------------------------------
 
-      ...extractedMemory,
+    const diagnosticState =
+      buildDiagnosticState(
+        updatedMemory,
+        interviewState
+      );
 
-      symptoms: [
-
-        ...new Set([
-
-          ...memory.symptoms,
-
-          ...(extractedMemory.symptoms || [])
-        ])
-
-      ].slice(-20),
-
-      medications: [
-
-        ...new Set([
-
-          ...memory.medications,
-
-          ...(extractedMemory.medications || [])
-        ])
-
-      ].slice(-20),
-
-      diagnoses: [
-
-        ...new Set([
-
-          ...memory.diagnoses,
-
-          ...(extractedMemory.diagnoses || [])
-        ])
-
-      ].slice(-20),
-
-      allergies: [
-
-        ...new Set([
-
-          ...memory.allergies,
-
-          ...(extractedMemory.allergies || [])
-        ])
-
-      ].slice(-20),
-
-      riskFactors: [
-
-        ...new Set([
-
-          ...memory.riskFactors,
-
-          ...(extractedMemory.riskFactors || [])
-        ])
-
-      ].slice(-20),
-
-      extractedFacts: [
-
-        ...new Set([
-
-          ...memory.extractedFacts,
-
-          ...(extractedMemory.extractedFacts || []),
-
-          safeUserInput
-        ])
-
-      ].slice(-40),
-
-      chronicConditions: [
-
-        ...new Set([
-
-          ...(memory.chronicConditions || []),
-
-          ...(extractedMemory.chronicConditions || [])
-        ])
-
-      ].slice(-20),
-
-      surgeries: [
-
-        ...new Set([
-
-          ...(memory.surgeries || []),
-
-          ...(extractedMemory.surgeries || [])
-        ])
-
-      ].slice(-20),
-
-      familyHistory: [
-
-        ...new Set([
-
-          ...(memory.familyHistory || []),
-
-          ...(extractedMemory.familyHistory || [])
-        ])
-
-      ].slice(-20)
-    };
 
     // -----------------------------------
     // SYSTEM PROMPT
@@ -529,7 +322,7 @@ ${userInput.slice(0, 4000)}
     let modelName:
       "gpt-4o-mini" |
       "gpt-4.1-mini" =
-        "gpt-4o-mini";
+      "gpt-4o-mini";
 
     switch (decision.mode) {
 
@@ -568,65 +361,10 @@ Do NOT continue the interview.
 
       case ResponseMode.CLARIFICATION_MODE:
 
-        systemInstruction += `
-
-You are now in SMART MEDICAL TRIAGE MODE.
-
-CRITICAL RULES:
-
-- Ask ONLY ONE short question.
-- NEVER repeat questions.
-- NEVER ask the same thing differently.
-- NEVER ask generic filler questions.
-- NEVER prolong the interview unnecessarily.
-- If the probable cause is already obvious:
-  STOP THE INTERVIEW.
-
-INTERVIEW PRIORITY:
-
-1. Exclude dangerous conditions
-2. Identify obvious trigger
-3. Confirm low-risk scenario
-4. Finish interview quickly
-
-VERY IMPORTANT:
-
-The user HATES long useless interviews.
-
-DO NOT ask more than needed.
-
-CURRENT INTERVIEW STATE:
-${JSON.stringify(interviewState)}
-
-PREVIOUS QUESTIONS:
-${JSON.stringify(interviewState.previousQuestions)}
-
-KNOWN FACTS:
-${JSON.stringify(updatedMemory.extractedFacts)}
-
-IF:
-- symptoms are obvious
-- danger is low
-- trigger is known
-- no red flags
-
-THEN:
-finish interview immediately.
-
-RETURN ONLY JSON.
-
-FORMAT:
-
-{
-  "summary": "question",
-  "quick_replies": [
-    "option 1",
-    "option 2",
-    "Пропустить"
-  ],
-  "interviewCompleted": false
-}
-`;
+        systemInstruction +=
+          buildClarificationPrompt(
+            diagnosticState
+          )
 
         break;
 
@@ -681,143 +419,63 @@ ${JSON.stringify(medicalStateUpdates)}
       });
 
     // -----------------------------------
-    // PARSE
-    // -----------------------------------
-
-    let parsedInterview: any =
-      null;
-
-    try {
-
-      const cleaned = response
-
-        .replace(/```json/g, '')
-
-        .replace(/```/g, '')
-
-        .trim();
-
-      parsedInterview =
-        JSON.parse(cleaned);
-
-    } catch {
-
-      parsedInterview = null;
-    }
-
-    // -----------------------------------
     // NORMALIZE
     // -----------------------------------
 
-    const normalizedResponse = {
-
-      summary:
-
-        parsedInterview?.summary
-
-        ||
-
-        parsedInterview?.message
-
-        ||
-
+    const normalizedResponse =
+      normalizeMedicalResponse(
         response,
+        decision
+      );
 
-      probableDiagnoses:
+    // -----------------------------------
+    // QUESTION VALIDATION
+    // -----------------------------------
 
-        Array.isArray(
-          parsedInterview?.probableDiagnoses
-        )
+    if (
 
-          ? parsedInterview.probableDiagnoses
+      decision.mode ===
+      ResponseMode.CLARIFICATION_MODE
 
-          : [],
+      &&
 
-      reasoning:
+      !normalizedResponse.interviewCompleted
 
-        Array.isArray(
-          parsedInterview?.reasoning
-        )
+    ) {
 
-          ? parsedInterview.reasoning
+      const validation =
 
-          : [],
+        validateGeneratedQuestion(
 
-      risks:
+          normalizedResponse.summary,
 
-        Array.isArray(
-          parsedInterview?.risks
-        )
+          diagnosticState.alreadyCovered
+        );
 
-          ? parsedInterview.risks
+      console.log(
+        "Question validation:",
+        validation
+      );
 
-          : [],
+      // -----------------------------------
+      // FORCE STOP ON REPEATS
+      // -----------------------------------
 
-      recommendations:
+      if (!validation.valid) {
 
-        Array.isArray(
-          parsedInterview?.recommendations
-        )
+        normalizedResponse.summary =
+          "Наиболее вероятно речь идет о нетяжелой проблеме, связанной с описанными симптомами. Если состояние ухудшается, появляется сильная боль, отек, онемение или другие тревожные симптомы — обратитесь к врачу.";
 
-          ? parsedInterview.recommendations
+        normalizedResponse.interviewCompleted =
+          true;
 
-          : [],
+        normalizedResponse.quickReplies = [];
 
-      medications:
-
-        Array.isArray(
-          parsedInterview?.medications
-        )
-
-          ? parsedInterview.medications
-
-          : [],
-
-      suggested_actions:
-
-        Array.isArray(
-          parsedInterview?.suggested_actions
-        )
-
-          ? parsedInterview.suggested_actions
-
-          : [],
-
-      quickReplies:
-
-        Array.isArray(
-          parsedInterview?.quick_replies
-        )
-
-          ? parsedInterview.quick_replies
-
-          : [],
-
-      danger_level:
-
-        parsedInterview?.danger_level
-
-        ||
-
-        decision?.emergencyLevel
-
-        ||
-
-        "low",
-
-      interviewCompleted:
-
-        parsedInterview
-          ?.interviewCompleted
-
-        ||
-
-        decision?.interviewCompleted
-
-        ||
-
-        false
-    };
+        console.log(
+          "Repeated question blocked"
+        );
+      }
+    }
 
     // -----------------------------------
     // SNAPSHOT
