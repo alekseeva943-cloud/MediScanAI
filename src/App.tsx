@@ -930,7 +930,8 @@ export default function App() {
         profile={
           useChatStore
             .getState()
-            .patientProfile
+            .medicalMemory
+            ?.patientProfile
         }
       />
 

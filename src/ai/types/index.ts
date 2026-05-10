@@ -1,5 +1,13 @@
 // src/ai/types/index.ts
 
+// Главные AI типы системы.
+//
+// Здесь:
+// - router types
+// - medical memory
+// - AI response structures
+// - interview state types
+
 import type {
   PatientProfile
 } from "../profile/patientProfile.js";
@@ -46,7 +54,7 @@ export enum ResponseMode {
 }
 
 // -----------------------------------------------------
-// ROUTER
+// ROUTER DECISION
 // -----------------------------------------------------
 
 export interface RouterDecision {
@@ -112,10 +120,14 @@ export interface ActiveMedicalCase {
 }
 
 // -----------------------------------------------------
-// LEGACY MEMORY
+// MEDICAL MEMORY
 // -----------------------------------------------------
 
 export interface MedicalMemory {
+
+  // -----------------------------------
+  // LEGACY MEMORY
+  // -----------------------------------
 
   symptoms: string[];
 
@@ -142,20 +154,20 @@ export interface MedicalMemory {
   sex?: string;
 
   // -----------------------------------
-  // LEGACY ACTIVE CASE
+  // ACTIVE CASE
   // -----------------------------------
 
   activeCase?: ActiveMedicalCase;
 
   // -----------------------------------
-  // NEW STRUCTURED PATIENT PROFILE
+  // NEW STRUCTURED PROFILE
   // -----------------------------------
 
   patientProfile?: PatientProfile;
 }
 
 // -----------------------------------------------------
-// PATIENT PROFILE UPDATE
+// PROFILE UPDATE
 // -----------------------------------------------------
 
 export interface PatientProfileUpdate {
@@ -223,7 +235,7 @@ export interface MedicalCaseUpdate {
 }
 
 // -----------------------------------------------------
-// AI MEDICAL UPDATE RESULT
+// AI UPDATE RESULT
 // -----------------------------------------------------
 
 export interface AIMedicalUpdateResult {
