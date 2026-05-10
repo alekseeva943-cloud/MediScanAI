@@ -1,130 +1,137 @@
 // src/ai/profile/updatePatientProfile.ts
 
-// Этот файл отвечает за обновление
-// профиля пациента через GPT.
-//
-// ВАЖНО:
-//
-// GPT может забывать некоторые поля.
-// Поэтому backend дополнительно
-// нормализует и стабилизирует profile.
+// Обновление профиля пациента.
+// Этот файл:
+// - обновляет profile через GPT,
+// - безопасно merge'ит данные,
+// - НЕ теряет старые поля,
+// - автоматически отмечает закрытые темы,
+// - стабилизирует profile.
 
 import { OpenAIProvider }
-  from "../providers/openaiProvider.js";
+    from "../providers/openaiProvider.js";
 
 import type {
-  PatientProfile
+    PatientProfile
 } from "../profile/patientProfile.js";
 
 import {
-  PROFILE_UPDATE_PROMPT
+    PROFILE_UPDATE_PROMPT
 } from "./profileUpdatePrompt.js";
 
 // -----------------------------------
-// DEEP MERGE
+// SAFE ARRAY UNIQUE
+// -----------------------------------
+
+function uniqueArray(
+    arr: string[]
+): string[] {
+
+    return [...new Set(arr)];
+}
+
+// -----------------------------------
+// SAFE DEEP MERGE
 // -----------------------------------
 
 function deepMerge(
-  target: any,
-  source: any
+    target: any,
+    source: any
 ): any {
 
-  const output = {
-    ...target
-  };
-
-  if (
-
-    typeof target !== "object"
-
-    ||
-
-    typeof source !== "object"
-
-  ) {
-
-    return source;
-  }
-
-  Object.keys(source).forEach((key) => {
-
-    const sourceValue =
-      source[key];
-
-    const targetValue =
-      target[key];
-
-    // -----------------------------------
-    // ARRAYS
-    // -----------------------------------
-
-    if (
-      Array.isArray(sourceValue)
-    ) {
-
-      output[key] = [
-
-        ...new Set([
-
-          ...(Array.isArray(targetValue)
-            ? targetValue
-            : []),
-
-          ...sourceValue
-        ])
-      ];
-
-      return;
+    // если source пустой
+    if (!source) {
+        return target;
     }
 
-    // -----------------------------------
-    // OBJECTS
-    // -----------------------------------
-
-    if (
-
-      sourceValue
-
-      &&
-
-      typeof sourceValue ===
-      "object"
-
-    ) {
-
-      output[key] =
-        deepMerge(
-          targetValue || {},
-          sourceValue
-        );
-
-      return;
+    // если target пустой
+    if (!target) {
+        return source;
     }
 
-    // -----------------------------------
-    // PRIMITIVES
-    // -----------------------------------
+    const output = {
+        ...target
+    };
 
-    if (
+    Object.keys(source).forEach((key) => {
 
-      sourceValue !== undefined
+        const sourceValue =
+            source[key];
 
-      &&
+        const targetValue =
+            target[key];
 
-      sourceValue !== null
+        // -----------------------------------
+        // ARRAYS
+        // -----------------------------------
 
-      &&
+        if (
+            Array.isArray(sourceValue)
+        ) {
 
-      sourceValue !== ""
+            output[key] = uniqueArray([
 
-    ) {
+                ...(Array.isArray(targetValue)
+                    ? targetValue
+                    : []),
 
-      output[key] =
-        sourceValue;
-    }
-  });
+                ...sourceValue
+            ]);
 
-  return output;
+            return;
+        }
+
+        // -----------------------------------
+        // OBJECTS
+        // -----------------------------------
+
+        if (
+
+            sourceValue
+
+            &&
+
+            typeof sourceValue === "object"
+
+            &&
+
+            !Array.isArray(sourceValue)
+
+        ) {
+
+            output[key] =
+                deepMerge(
+                    targetValue || {},
+                    sourceValue
+                );
+
+            return;
+        }
+
+        // -----------------------------------
+        // PRIMITIVES
+        // -----------------------------------
+
+        if (
+
+            sourceValue !== undefined
+
+            &&
+
+            sourceValue !== null
+
+            &&
+
+            sourceValue !== ""
+
+        ) {
+
+            output[key] =
+                sourceValue;
+        }
+    });
+
+    return output;
 }
 
 // -----------------------------------
@@ -132,177 +139,274 @@ function deepMerge(
 // -----------------------------------
 
 function normalizeProfile(
-  profile: PatientProfile
+    profile: PatientProfile
 ): PatientProfile {
 
-  const resolvedTopics =
-    new Set(
-      profile.resolvedTopics
-    );
+    // -----------------------------------
+    // SAFE DEFAULTS
+    // -----------------------------------
 
-  // -----------------------------------
-  // PAIN
-  // -----------------------------------
+    profile.pain ??= {
 
-  if (
-    profile.pain.character
-  ) {
+        location: "",
 
-    resolvedTopics.add(
-      "pain_character"
-    );
-  }
+        character: "",
 
-  if (
-    profile.pain.location
-  ) {
+        severity: "",
 
-    resolvedTopics.add(
-      "pain_location"
-    );
-  }
+        duration: ""
+    };
 
-  if (
-    profile.pain.duration
-  ) {
+    profile.trauma ??= {
 
-    resolvedTopics.add(
-      "pain_duration"
-    );
-  }
+        exists: false,
 
-  // -----------------------------------
-  // TRAUMA
-  // -----------------------------------
+        mechanism: ""
+    };
 
-  if (
-    profile.trauma.exists
-  ) {
+    profile.symptoms ??= [];
 
-    resolvedTopics.add(
-      "trauma"
-    );
-  }
+    profile.functionalLimitations ??= [];
 
-  // -----------------------------------
-  // NEGATIVE FINDINGS
-  // -----------------------------------
+    profile.possibleTriggers ??= [];
 
-  if (
+    profile.negativeFindings ??= [];
 
-    profile.negativeFindings
-      .includes("отек")
+    profile.redFlags ??= [];
 
-  ) {
+    profile.resolvedTopics ??= [];
 
-    resolvedTopics.add(
-      "swelling"
-    );
-  }
+    // -----------------------------------
+    // RESOLVED TOPICS
+    // -----------------------------------
 
-  if (
+    const resolvedTopics =
+        new Set(
+            profile.resolvedTopics
+        );
 
-    profile.negativeFindings
-      .includes("онемение")
+    // -----------------------------------
+    // PAIN
+    // -----------------------------------
 
-  ) {
+    if (
+        profile.pain.location
+    ) {
 
-    resolvedTopics.add(
-      "numbness"
-    );
-  }
+        resolvedTopics.add(
+            "pain_location"
+        );
+    }
 
-  profile.resolvedTopics =
-    Array.from(
-      resolvedTopics
-    );
+    if (
+        profile.pain.character
+    ) {
 
-  return profile;
+        resolvedTopics.add(
+            "pain_character"
+        );
+    }
+
+    if (
+        profile.pain.duration
+    ) {
+
+        resolvedTopics.add(
+            "pain_duration"
+        );
+    }
+
+    if (
+        profile.pain.severity
+    ) {
+
+        resolvedTopics.add(
+            "pain_severity"
+        );
+    }
+
+    // -----------------------------------
+    // TRAUMA
+    // -----------------------------------
+
+    if (
+        profile.trauma.exists
+    ) {
+
+        resolvedTopics.add(
+            "trauma"
+        );
+    }
+
+    if (
+        profile.trauma.mechanism
+    ) {
+
+        resolvedTopics.add(
+            "trauma_mechanism"
+        );
+    }
+
+    // -----------------------------------
+    // FUNCTIONAL LIMITATIONS
+    // -----------------------------------
+
+    if (
+        profile.functionalLimitations.length > 0
+    ) {
+
+        resolvedTopics.add(
+            "functional_limitation"
+        );
+    }
+
+    // -----------------------------------
+    // NEGATIVE FINDINGS
+    // -----------------------------------
+
+    const negatives =
+        profile.negativeFindings
+            .map((x) => x.toLowerCase());
+
+    if (
+        negatives.includes("отек")
+    ) {
+
+        resolvedTopics.add(
+            "swelling"
+        );
+    }
+
+    if (
+        negatives.includes("онемение")
+    ) {
+
+        resolvedTopics.add(
+            "numbness"
+        );
+    }
+
+    // -----------------------------------
+    // SAVE
+    // -----------------------------------
+
+    profile.resolvedTopics =
+        Array.from(
+            resolvedTopics
+        );
+
+    return profile;
 }
 
 export class PatientProfileUpdater {
 
-  private provider:
-    OpenAIProvider;
+    private provider:
+        OpenAIProvider;
 
-  constructor(apiKey: string) {
+    constructor(apiKey: string) {
 
-    this.provider =
-      new OpenAIProvider(apiKey);
-  }
+        this.provider =
+            new OpenAIProvider(apiKey);
+    }
 
-  async updateProfile(
-    currentProfile: PatientProfile,
-    userMessage: string
-  ): Promise<PatientProfile> {
+    async updateProfile(
+        currentProfile: PatientProfile,
+        userMessage: string
+    ): Promise<PatientProfile> {
 
-    try {
+        try {
 
-      const prompt = `
+            const prompt = `
 
 ${PROFILE_UPDATE_PROMPT}
 
 CURRENT PROFILE:
 ${JSON.stringify(
-  currentProfile,
-  null,
-  2
-)}
+                currentProfile,
+                null,
+                2
+            )}
 
 NEW USER MESSAGE:
 ${userMessage}
 
-Return ONLY profile update JSON.
+Return ONLY valid JSON.
 `;
 
-      const response =
+            const response =
 
-        await this.provider
-          .generateRouterDecision(
-            prompt
-          );
+                await this.provider
+                    .generateRouterDecision(
+                        prompt
+                    );
 
-      const cleaned =
+            const cleaned =
 
-        response
+                response
 
-          .replace(/```json/g, "")
+                    .replace(/```json/g, "")
 
-          .replace(/```/g, "")
+                    .replace(/```/g, "")
 
-          .trim();
+                    .trim();
 
-      const partialUpdate =
-        JSON.parse(cleaned);
+            let partialUpdate = {};
 
-      const mergedProfile =
+            try {
 
-        deepMerge(
-          currentProfile,
-          partialUpdate
-        );
+                partialUpdate =
+                    JSON.parse(cleaned);
 
-      const normalizedProfile =
+            } catch (jsonError) {
 
-        normalizeProfile(
-          mergedProfile
-        );
+                console.error(
+                    "Profile JSON parse error:",
+                    jsonError
+                );
 
-      console.log(
-        "Normalized profile:",
-        normalizedProfile
-      );
+                return currentProfile;
+            }
 
-      return normalizedProfile;
+            // -----------------------------------
+            // MERGE
+            // -----------------------------------
 
-    } catch (error) {
+            const mergedProfile =
 
-      console.error(
-        "Profile update error:",
-        error
-      );
+                deepMerge(
+                    currentProfile,
+                    partialUpdate
+                );
 
-      return currentProfile;
+            // -----------------------------------
+            // NORMALIZE
+            // -----------------------------------
+
+            const normalizedProfile =
+
+                normalizeProfile(
+                    mergedProfile
+                );
+
+            console.log(
+                "Updated patient profile:",
+                JSON.stringify(
+                    normalizedProfile,
+                    null,
+                    2
+                )
+            );
+
+            return normalizedProfile;
+
+        } catch (error) {
+
+            console.error(
+                "Profile update error:",
+                error
+            );
+
+            return currentProfile;
+        }
     }
-  }
 }
