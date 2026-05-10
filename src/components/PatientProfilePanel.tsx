@@ -53,25 +53,105 @@ const ArrayBlock = ({
   items
 }: any) => {
 
+  // -----------------------------------
+  // SAFE NORMALIZE
+  // -----------------------------------
+
+  const safeItems =
+
+    Array.isArray(items)
+
+      ? items
+
+          .map((item) => {
+
+            // -----------------------------
+            // STRING
+            // -----------------------------
+
+            if (
+              typeof item === "string"
+            ) {
+
+              return item;
+            }
+
+            // -----------------------------
+            // NUMBER
+            // -----------------------------
+
+            if (
+              typeof item === "number"
+            ) {
+
+              return String(item);
+            }
+
+            // -----------------------------
+            // OBJECT
+            // -----------------------------
+
+            if (
+              item
+              &&
+              typeof item === "object"
+            ) {
+
+              // symptom
+              if (item.symptom) {
+                return item.symptom;
+              }
+
+              // name
+              if (item.name) {
+                return item.name;
+              }
+
+              // title
+              if (item.title) {
+                return item.title;
+              }
+
+              // fallback
+              return JSON.stringify(item);
+            }
+
+            return null;
+          })
+
+          .filter(Boolean)
+
+      : [];
+
+  // -----------------------------------
+  // EMPTY
+  // -----------------------------------
+
   if (
-    !items
-    ||
-    items.length === 0
+    safeItems.length === 0
   ) {
 
     return (
+
       <span className="text-slate-400 text-sm">
         Нет данных
       </span>
     );
   }
 
+  // -----------------------------------
+  // RENDER
+  // -----------------------------------
+
   return (
 
     <div className="flex flex-wrap gap-2">
 
-      {items.map(
-        (item: string, i: number) => (
+      {safeItems.map(
+        (
+          item: string,
+          i: number
+        ) => (
 
           <div
 
@@ -83,6 +163,7 @@ const ArrayBlock = ({
           </div>
         )
       )}
+
     </div>
   );
 };
