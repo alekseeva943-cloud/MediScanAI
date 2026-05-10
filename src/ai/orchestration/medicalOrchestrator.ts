@@ -51,7 +51,7 @@ export class MedicalOrchestrator {
     return {
 
       symptoms:
-        memory.symptoms.slice(-10),
+        memory.symptoms.slice(-15),
 
       medications:
         memory.medications.slice(-10),
@@ -66,7 +66,7 @@ export class MedicalOrchestrator {
         memory.riskFactors.slice(-10),
 
       extractedFacts:
-        memory.extractedFacts.slice(-15),
+        memory.extractedFacts.slice(-20),
 
       chronicConditions:
         (memory.chronicConditions || [])
@@ -136,6 +136,161 @@ ${userInput.slice(0, 4000)}
   }
 
   // -----------------------------------
+  // BUILD INTERVIEW STATE
+  // -----------------------------------
+
+  private buildInterviewState(
+    history: any[],
+    memory: MedicalMemory
+  ) {
+
+    const assistantMessages =
+      history.filter(
+        (m) => m.role === "assistant"
+      );
+
+    const clarificationCount =
+      assistantMessages.length;
+
+    const previousQuestions =
+      assistantMessages
+        .map((m) => {
+
+          try {
+
+            const parsed =
+              JSON.parse(m.content);
+
+            return parsed?.text || "";
+
+          } catch {
+
+            return m.content || "";
+          }
+
+        })
+        .filter(Boolean)
+        .slice(-12);
+
+    const extractedFacts =
+      memory.extractedFacts || [];
+
+    // -----------------------------------
+    // LOW RISK HEURISTICS
+    // -----------------------------------
+
+    const joinedFacts =
+      extractedFacts
+        .join(" ")
+        .toLowerCase();
+
+    const obviousFoodIrritation =
+
+      (
+        joinedFacts.includes("остр")
+        ||
+        joinedFacts.includes("халапеньо")
+        ||
+        joinedFacts.includes("шаурм")
+      )
+
+      &&
+
+      (
+        joinedFacts.includes("жжение")
+        ||
+        joinedFacts.includes("зуд")
+      )
+
+      &&
+
+      !joinedFacts.includes("кров")
+      &&
+      !joinedFacts.includes("температ")
+      &&
+      !joinedFacts.includes("рвот")
+      &&
+      !joinedFacts.includes("сильная боль");
+
+    const probableFishScratch =
+
+      (
+        joinedFacts.includes("косточ")
+        ||
+        joinedFacts.includes("рыб")
+      )
+
+      &&
+
+      (
+        joinedFacts.includes("глот")
+        ||
+        joinedFacts.includes("горл")
+      )
+
+      &&
+
+      !joinedFacts.includes("удуш")
+      &&
+      !joinedFacts.includes("не могу дышать")
+      &&
+      !joinedFacts.includes("кров")
+      &&
+      !joinedFacts.includes("температ");
+
+    // -----------------------------------
+    // CONFIDENCE
+    // -----------------------------------
+
+    let confidence:
+      "low" |
+      "medium" |
+      "high" = "low";
+
+    if (
+      obviousFoodIrritation
+      ||
+      probableFishScratch
+    ) {
+
+      confidence = "high";
+
+    } else if (
+      extractedFacts.length >= 4
+    ) {
+
+      confidence = "medium";
+    }
+
+    // -----------------------------------
+    // EARLY EXIT
+    // -----------------------------------
+
+    const shouldFinishInterview =
+
+      confidence === "high"
+
+      ||
+
+      clarificationCount >= 6;
+
+    return {
+
+      clarificationCount,
+
+      previousQuestions,
+
+      confidence,
+
+      shouldFinishInterview,
+
+      obviousFoodIrritation,
+
+      probableFishScratch
+    };
+  }
+
+  // -----------------------------------
   // MAIN PROCESS
   // -----------------------------------
 
@@ -151,7 +306,17 @@ ${userInput.slice(0, 4000)}
       userInput.slice(0, 6000);
 
     const safeHistory =
-      history.slice(-5);
+      history.slice(-10);
+
+    // -----------------------------------
+    // INTERVIEW STATE
+    // -----------------------------------
+
+    const interviewState =
+      this.buildInterviewState(
+        safeHistory,
+        memory
+      );
 
     // -----------------------------------
     // ROUTER
@@ -169,6 +334,33 @@ ${userInput.slice(0, 4000)}
       "Orchestrator decision:",
       decision
     );
+
+    console.log(
+      "Interview state:",
+      interviewState
+    );
+
+    // -----------------------------------
+    // FORCE FINISH
+    // -----------------------------------
+
+    if (
+
+      decision.mode ===
+      ResponseMode.CLARIFICATION_MODE
+
+      &&
+
+      interviewState.shouldFinishInterview
+
+    ) {
+
+      decision.mode =
+        ResponseMode.FULL_MEDICAL_ANALYSIS;
+
+      decision.interviewCompleted =
+        true;
+    }
 
     // -----------------------------------
     // MEMORY EXTRACTION
@@ -251,10 +443,12 @@ ${userInput.slice(0, 4000)}
 
           ...memory.extractedFacts,
 
-          ...(extractedMemory.extractedFacts || [])
+          ...(extractedMemory.extractedFacts || []),
+
+          safeUserInput
         ])
 
-      ].slice(-30),
+      ].slice(-40),
 
       chronicConditions: [
 
@@ -316,6 +510,22 @@ ${userInput.slice(0, 4000)}
         modelName =
           "gpt-4.1-mini";
 
+        systemInstruction += `
+
+IMPORTANT:
+
+- Stop asking questions.
+- The interview is already sufficient.
+- Give a concise medical assessment.
+- Explain the MOST LIKELY cause.
+- Give practical recommendations.
+- Mention red flags ONLY if relevant.
+- Behave like an experienced doctor.
+
+IMPORTANT:
+Do NOT continue the interview.
+`;
+
         break;
 
       case ResponseMode.ANALYSIS_UPDATE_MODE:
@@ -323,59 +533,61 @@ ${userInput.slice(0, 4000)}
         systemInstruction +=
           "\n" + UPDATE_ANALYSIS_PROMPT;
 
-        if (lastAnalysis) {
-
-          systemInstruction += `
-
-PREVIOUS ANALYSIS SUMMARY:
-${lastAnalysis.summary?.slice(0, 1200) || ""}
-
-PREVIOUS RISKS:
-${(lastAnalysis.risks || [])
-  .slice(0, 10)
-  .join(", ")}
-
-PREVIOUS DIAGNOSES:
-${(lastAnalysis.probableDiagnoses || [])
-  .slice(0, 10)
-  .join(", ")}
-`;
-        }
-
         break;
-
-      // -----------------------------------
-      // AI INTERVIEW MODE
-      // -----------------------------------
 
       case ResponseMode.CLARIFICATION_MODE:
 
         systemInstruction += `
 
-You are now in PREMIUM AI MEDICAL INTERVIEW MODE.
-
-YOUR JOB:
-Conduct a smart adaptive medical interview.
+You are now in SMART MEDICAL TRIAGE MODE.
 
 CRITICAL RULES:
 
-- Ask ONLY ONE question at a time.
-- The interview must feel natural.
-- Behave like a real medical assistant.
-- Questions must adapt dynamically.
-- Never use static questionnaires.
-- Never repeat questions.
-- Never ask many questions together.
-- Keep questions concise.
-- Focus on the most medically important next step.
+- Ask ONLY ONE short question.
+- NEVER repeat questions.
+- NEVER ask the same thing differently.
+- NEVER ask generic filler questions.
+- NEVER prolong the interview unnecessarily.
+- If the probable cause is already obvious:
+  STOP THE INTERVIEW.
 
-IMPORTANT:
-You MUST return ONLY VALID JSON.
+INTERVIEW PRIORITY:
 
-RETURN FORMAT:
+1. Exclude dangerous conditions
+2. Identify obvious trigger
+3. Confirm low-risk scenario
+4. Finish interview quickly
+
+VERY IMPORTANT:
+
+The user HATES long useless interviews.
+
+DO NOT ask more than needed.
+
+CURRENT INTERVIEW STATE:
+${JSON.stringify(interviewState)}
+
+PREVIOUS QUESTIONS:
+${JSON.stringify(interviewState.previousQuestions)}
+
+KNOWN FACTS:
+${JSON.stringify(updatedMemory.extractedFacts)}
+
+IF:
+- symptoms are obvious
+- danger is low
+- trigger is known
+- no red flags
+
+THEN:
+finish interview immediately.
+
+RETURN ONLY JSON.
+
+FORMAT:
 
 {
-  "summary": "question here",
+  "summary": "question",
   "quick_replies": [
     "option 1",
     "option 2",
@@ -383,71 +595,26 @@ RETURN FORMAT:
   ],
   "interviewCompleted": false
 }
-
-QUICK REPLY RULES:
-
-- Always include "Пропустить"
-- Generate medically relevant buttons
-- Buttons must sound natural
-- Buttons must match the question
-
-WHEN ENOUGH DATA EXISTS:
-
-{
-  "summary":
-    "Информации достаточно для предварительной оценки.",
-
-  "quick_replies": [
-    "📄 Создать отчет",
-    "🩻 Загрузить МРТ",
-    "🧪 Прикрепить анализы",
-    "📷 Загрузить фото",
-    "➕ Добавить симптомы"
-  ],
-
-  "interviewCompleted": true
-}
-
-ONLY JSON.
 `;
 
         break;
-
-      // -----------------------------------
-      // EMERGENCY
-      // -----------------------------------
 
       case ResponseMode.EMERGENCY_WARNING_MODE:
 
         systemInstruction += `
 
-CRITICAL MEDICAL SITUATION.
+Emergency mode.
 
-Advise immediate emergency medical attention.
+Advise urgent medical attention.
 
-RETURN ONLY JSON.
-
-FORMAT:
-
-{
-  "summary":
-    "Это может требовать срочной медицинской помощи.",
-
-  "quick_replies": [
-    "🚑 Вызвать скорую",
-    "👨‍⚕️ Связаться с врачом",
-    "Пропустить"
-  ],
-
-  "interviewCompleted": true
-}
+RETURN JSON ONLY.
 `;
 
         break;
     }
 
     // -----------------------------------
-    // MEMORY INJECTION
+    // MEMORY
     // -----------------------------------
 
     const compactMemory =
@@ -462,7 +629,7 @@ ${JSON.stringify(compactMemory)}
 `;
 
     // -----------------------------------
-    // GENERATE RESPONSE
+    // GENERATE
     // -----------------------------------
 
     const response =
@@ -480,7 +647,7 @@ ${JSON.stringify(compactMemory)}
       });
 
     // -----------------------------------
-    // PARSE AI JSON
+    // PARSE
     // -----------------------------------
 
     let parsedInterview: any =
@@ -505,7 +672,7 @@ ${JSON.stringify(compactMemory)}
     }
 
     // -----------------------------------
-    // NORMALIZED RESPONSE
+    // NORMALIZE
     // -----------------------------------
 
     const normalizedResponse = {
@@ -590,13 +757,7 @@ ${JSON.stringify(compactMemory)}
 
           ? parsedInterview.quick_replies
 
-          : Array.isArray(
-              parsedInterview?.quickReplies
-            )
-
-            ? parsedInterview.quickReplies
-
-            : [],
+          : [],
 
       danger_level:
 
@@ -613,7 +774,15 @@ ${JSON.stringify(compactMemory)}
       interviewCompleted:
 
         parsedInterview
-          ?.interviewCompleted || false
+          ?.interviewCompleted
+
+        ||
+
+        decision?.interviewCompleted
+
+        ||
+
+        false
     };
 
     // -----------------------------------
@@ -624,12 +793,15 @@ ${JSON.stringify(compactMemory)}
 
       ...normalizedResponse,
 
+      confidence:
+        interviewState.confidence,
+
       timestamp:
         Date.now()
     };
 
     // -----------------------------------
-    // FINAL RESPONSE
+    // FINAL
     // -----------------------------------
 
     return {
