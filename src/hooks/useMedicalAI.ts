@@ -33,6 +33,8 @@ export const useMedicalAI = () => {
 
     setMedicalMemory,
 
+    setPatientProfile,
+
     setLastAnalysis
 
   } = useChatStore();
@@ -99,13 +101,38 @@ export const useMedicalAI = () => {
           response.updatedMemory
         ) {
 
+          // -----------------------------------
+          // UPDATE FULL MEMORY
+          // -----------------------------------
+
           setMedicalMemory(
             response.updatedMemory
           );
 
-          console.log(
-            'Memory updated:',
+          // -----------------------------------
+          // FORCE SYNC PROFILE
+          // -----------------------------------
+
+          if (
             response.updatedMemory
+              ?.patientProfile
+          ) {
+
+            setPatientProfile(
+              response.updatedMemory
+                .patientProfile
+            );
+          }
+
+          console.log(
+            'UPDATED MEMORY:',
+            response.updatedMemory
+          );
+
+          console.log(
+            'UPDATED PROFILE:',
+            response.updatedMemory
+              ?.patientProfile
           );
         }
 

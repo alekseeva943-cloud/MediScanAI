@@ -67,97 +67,97 @@ interface ChatStore {
   // -----------------------------------------------------
 
   addMessage:
-    (message: Message) => void;
+  (message: Message) => void;
 
   updateMessage:
-    (
-      id: string,
-      updates: Partial<Message>
-    ) => void;
+  (
+    id: string,
+    updates: Partial<Message>
+  ) => void;
 
   clearHistory:
-    () => void;
+  () => void;
 
   setLoading:
-    (
-      loading: boolean,
-      status?: string | null
-    ) => void;
+  (
+    loading: boolean,
+    status?: string | null
+  ) => void;
 
   setError:
-    (
-      error: string | null
-    ) => void;
+  (
+    error: string | null
+  ) => void;
 
   // -----------------------------------------------------
   // PATIENT ACTIONS
   // -----------------------------------------------------
 
   setPatientProfile:
-    (
-      profile: PatientProfile
-    ) => void;
+  (
+    profile: PatientProfile
+  ) => void;
 
   updatePatientProfile:
-    (
-      updates: Partial<PatientProfile>
-    ) => void;
+  (
+    updates: Partial<PatientProfile>
+  ) => void;
 
   resetPatientProfile:
-    () => void;
+  () => void;
 
   // -----------------------------------------------------
   // CASE ACTIONS
   // -----------------------------------------------------
 
   setActiveCase:
-    (
-      medicalCase: MedicalCase
-    ) => void;
+  (
+    medicalCase: MedicalCase
+  ) => void;
 
   updateActiveCase:
-    (
-      updates: Partial<MedicalCase>
-    ) => void;
+  (
+    updates: Partial<MedicalCase>
+  ) => void;
 
   addMedicalCase:
-    (
-      medicalCase: MedicalCase
-    ) => void;
+  (
+    medicalCase: MedicalCase
+  ) => void;
 
   archiveActiveCase:
-    () => void;
+  () => void;
 
   resetActiveCase:
-    () => void;
+  () => void;
 
   // -----------------------------------------------------
   // DOCUMENTS
   // -----------------------------------------------------
 
   addDocument:
-    (
-      document: MedicalDocument
-    ) => void;
+  (
+    document: MedicalDocument
+  ) => void;
 
   removeDocument:
-    (
-      id: string
-    ) => void;
+  (
+    id: string
+  ) => void;
 
   // -----------------------------------------------------
   // LEGACY ACTIONS
   // -----------------------------------------------------
 
   setMedicalMemory:
-    (
-      memory: MedicalMemory
-    ) => void;
+  (
+    memory: MedicalMemory
+  ) => void;
 
   setLastAnalysis:
-    (
-      analysis: any
-    ) => void;
+  (
+    analysis: any
+  ) => void;
 }
 
 // -----------------------------------------------------
@@ -254,6 +254,9 @@ const initialMedicalCase:
 
 const initialMedicalMemory:
   MedicalMemory = {
+    
+  patientProfile:
+    initialPatientProfile,
 
   symptoms: [],
 
@@ -352,9 +355,9 @@ export const useChatStore =
               m.id === id
 
                 ? {
-                    ...m,
-                    ...updates
-                  }
+                  ...m,
+                  ...updates
+                }
 
                 : m
             )
