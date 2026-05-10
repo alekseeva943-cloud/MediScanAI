@@ -1,3 +1,4 @@
+
 // src/components/PatientProfilePanel.tsx
 
 // Панель профиля пациента.
@@ -11,452 +12,485 @@
 // в полноценную medical card.
 
 import {
-    X,
-    Brain,
-    Activity,
-    AlertTriangle
+  X,
+  Brain,
+  Activity
 } from "lucide-react";
 
 import {
-    motion,
-    AnimatePresence
+  motion,
+  AnimatePresence
 } from "motion/react";
+
+// -----------------------------------
+// TYPES
+// -----------------------------------
 
 interface Props {
 
-    isOpen: boolean;
+  isOpen: boolean;
 
-    onClose: () => void;
+  onClose: () => void;
 
-    profile: any;
+  profile: any;
 }
 
+// -----------------------------------
+// SECTION
+// -----------------------------------
+
 const Section = ({
-    title,
-    children
+  title,
+  children
 }: any) => (
 
-    <div className="space-y-2">
+  <div className="space-y-2">
 
-        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">
-            {title}
-        </h3>
+    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">
+      {title}
+    </h3>
 
-        <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
-            {children}
-        </div>
-
+    <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+      {children}
     </div>
+
+  </div>
 );
 
+// -----------------------------------
+// ARRAY BLOCK
+// -----------------------------------
+
 const ArrayBlock = ({
-    items
+  items
 }: any) => {
 
-    // -----------------------------------
-    // SAFE NORMALIZE
-    // -----------------------------------
+  const safeItems = Array.isArray(items)
+    ? items
+    : [];
 
-    const safeItems =
+  // -----------------------------------
+  // EMPTY
+  // -----------------------------------
 
-        Array.isArray(items)
+  if (safeItems.length === 0) {
 
-            ? items
+    return (
+      <span className="text-slate-400 text-sm">
+        Нет данных
+      </span>
+    );
+  }
 
-                .map((item) => {
+  // -----------------------------------
+  // SAFE RENDER
+  // -----------------------------------
 
-                    // -----------------------------
-                    // STRING
-                    // -----------------------------
+  const renderItem = (
+    item: any
+  ): string => {
 
-                    if (
-                        typeof item === "string"
-                    ) {
-
-                        return item;
-                    }
-
-                    // -----------------------------
-                    // NUMBER
-                    // -----------------------------
-
-                    if (
-                        typeof item === "number"
-                    ) {
-
-                        return String(item);
-                    }
-
-                    // -----------------------------
-                    // OBJECT
-                    // -----------------------------
-
-                    if (
-                        item
-                        &&
-                        typeof item === "object"
-                    ) {
-
-                        // symptom
-                        if (item.symptom) {
-                            return item.symptom;
-                        }
-
-                        // name
-                        if (item.name) {
-                            return item.name;
-                        }
-
-                        // title
-                        if (item.title) {
-                            return item.title;
-                        }
-
-                        // fallback
-                        return JSON.stringify(item);
-                    }
-
-                    return null;
-                })
-
-                .filter(Boolean)
-
-            : [];
-
-    // -----------------------------------
-    // EMPTY
-    // -----------------------------------
+    // STRING
 
     if (
-        safeItems.length === 0
+      typeof item === "string"
     ) {
 
-        return (
-
-            <span className="text-slate-400 text-sm">
-                Нет данных
-            </span>
-        );
+      return item;
     }
 
-    // -----------------------------------
-    // RENDER
-    // -----------------------------------
+    // NULL
 
-    return (
+    if (!item) {
 
-        <div className="flex flex-wrap gap-2">
+      return "—";
+    }
 
-            {safeItems.map(
-                (
-                    item: any,
-                    i: number
-                ) => (
+    // OBJECT
 
-                    <div
+    if (
+      typeof item === "object"
+    ) {
 
-                        key={i}
+      // symptom + anatomy
 
-                        className="px-2 py-1 rounded-full bg-white border border-slate-200 text-xs text-slate-700"
-                    >
+      if (
+        item.symptom
+        &&
+        item.anatomy
+      ) {
 
-                        {typeof item === "string"
+        return `${item.symptom} (${item.anatomy})`;
+      }
 
-                            ? item
+      // type + location
 
-                            : item?.type
+      if (
+        item.type
+        &&
+        item.location
+      ) {
 
-                            || JSON.stringify(item)
-                        }
+        return `${item.type} (${item.location})`;
+      }
 
-                    </div>
-                )
-            )}
+      // type only
 
-        </div>
-    );
+      if (
+        item.type
+      ) {
+
+        return item.type;
+      }
+
+      // symptom only
+
+      if (
+        item.symptom
+      ) {
+
+        return item.symptom;
+      }
+
+      // location only
+
+      if (
+        item.location
+      ) {
+
+        return item.location;
+      }
+
+      // fallback
+
+      return JSON.stringify(item);
+    }
+
+    return String(item);
+  };
+
+  // -----------------------------------
+  // RENDER
+  // -----------------------------------
+
+  return (
+
+    <div className="flex flex-wrap gap-2">
+
+      {safeItems.map(
+        (
+          item: any,
+          i: number
+        ) => (
+
+          <div
+
+            key={i}
+
+            className="px-2 py-1 rounded-full bg-white border border-slate-200 text-xs text-slate-700"
+          >
+
+            {renderItem(item)}
+
+          </div>
+        )
+      )}
+
+    </div>
+  );
 };
+
+// -----------------------------------
+// COMPONENT
+// -----------------------------------
 
 export const PatientProfilePanel = ({
-    isOpen,
-    onClose,
-    profile
+  isOpen,
+  onClose,
+  profile
 }: Props) => {
 
-    return (
+  return (
 
-        <AnimatePresence>
+    <AnimatePresence>
 
-            {isOpen && (
+      {isOpen && (
 
-                <>
+        <>
 
-                    {/* BACKDROP */}
+          {/* BACKDROP */}
 
-                    <motion.div
+          <motion.div
 
-                        initial={{
-                            opacity: 0
-                        }}
+            initial={{
+              opacity: 0
+            }}
 
-                        animate={{
-                            opacity: 1
-                        }}
+            animate={{
+              opacity: 1
+            }}
 
-                        exit={{
-                            opacity: 0
-                        }}
+            exit={{
+              opacity: 0
+            }}
 
-                        onClick={onClose}
+            onClick={onClose}
 
-                        className="absolute inset-0 bg-black/40 z-40"
-                    />
+            className="absolute inset-0 bg-black/40 z-40"
+          />
 
-                    {/* PANEL */}
+          {/* PANEL */}
 
-                    <motion.div
+          <motion.div
 
-                        initial={{
-                            x: 420
-                        }}
+            initial={{
+              x: 420
+            }}
 
-                        animate={{
-                            x: 0
-                        }}
+            animate={{
+              x: 0
+            }}
 
-                        exit={{
-                            x: 420
-                        }}
+            exit={{
+              x: 420
+            }}
 
-                        transition={{
-                            type: "spring",
-                            damping: 24
-                        }}
+            transition={{
+              type: "spring",
+              damping: 24
+            }}
 
-                        className="absolute top-0 right-0 w-[420px] h-full bg-white z-50 shadow-2xl border-l border-slate-200 flex flex-col"
-                    >
+            className="absolute top-0 right-0 w-[420px] h-full bg-white z-50 shadow-2xl border-l border-slate-200 flex flex-col"
+          >
 
-                        {/* HEADER */}
+            {/* HEADER */}
 
-                        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
 
-                            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3">
 
-                                <div className="w-10 h-10 rounded-2xl bg-teal-50 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl bg-teal-50 flex items-center justify-center">
 
-                                    <Brain
-                                        size={18}
-                                        className="text-teal-600"
-                                    />
+                  <Brain
+                    size={18}
+                    className="text-teal-600"
+                  />
 
-                                </div>
+                </div>
 
-                                <div>
+                <div>
 
-                                    <h2 className="font-bold text-slate-800">
-                                        Профиль пациента
-                                    </h2>
+                  <h2 className="font-bold text-slate-800">
+                    Профиль пациента
+                  </h2>
 
-                                    <p className="text-xs text-slate-400">
-                                        AI Clinical State
-                                    </p>
+                  <p className="text-xs text-slate-400">
+                    AI Clinical State
+                  </p>
 
-                                </div>
+                </div>
 
-                            </div>
+              </div>
 
-                            <button
+              <button
 
-                                onClick={onClose}
+                onClick={onClose}
 
-                                className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center"
-                            >
+                className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center"
+              >
 
-                                <X size={18} />
+                <X size={18} />
 
-                            </button>
+              </button>
 
-                        </div>
+            </div>
 
-                        {/* CONTENT */}
+            {/* CONTENT */}
 
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
-                            {/* MAIN */}
+              {/* MAIN */}
 
-                            <Section title="Главная жалоба">
+              <Section title="Главная жалоба">
 
-                                <div className="text-sm text-slate-700">
-                                    {profile?.mainComplaint || "Нет данных"}
-                                </div>
+                <div className="text-sm text-slate-700">
+                  {profile?.mainComplaint || "Нет данных"}
+                </div>
 
-                            </Section>
+              </Section>
 
-                            {/* PAIN */}
+              {/* PAIN */}
 
-                            <Section title="Боль">
+              <Section title="Боль">
 
-                                <div className="space-y-2 text-sm">
+                <div className="space-y-2 text-sm">
 
-                                    <div>
-                                        <span className="text-slate-400">
-                                            Локализация:
-                                        </span>{" "}
+                  <div>
 
-                                        {profile?.pain?.location || "—"}
-                                    </div>
+                    <span className="text-slate-400">
+                      Локализация:
+                    </span>{" "}
 
-                                    <div>
-                                        <span className="text-slate-400">
-                                            Характер:
-                                        </span>{" "}
+                    {profile?.pain?.location || "—"}
 
-                                        {profile?.pain?.character || "—"}
-                                    </div>
+                  </div>
 
-                                    <div>
-                                        <span className="text-slate-400">
-                                            Длительность:
-                                        </span>{" "}
+                  <div>
 
-                                        {profile?.pain?.duration || "—"}
-                                    </div>
+                    <span className="text-slate-400">
+                      Характер:
+                    </span>{" "}
 
-                                </div>
+                    {profile?.pain?.character || "—"}
 
-                            </Section>
+                  </div>
 
-                            {/* SYMPTOMS */}
+                  <div>
 
-                            <Section title="Симптомы">
+                    <span className="text-slate-400">
+                      Длительность:
+                    </span>{" "}
 
-                                <ArrayBlock
-                                    items={profile?.symptoms}
-                                />
+                    {profile?.pain?.duration || "—"}
 
-                            </Section>
+                  </div>
 
-                            {/* NEGATIVE */}
+                </div>
 
-                            <Section title="Отрицательные симптомы">
+              </Section>
 
-                                <ArrayBlock
-                                    items={profile?.negativeFindings}
-                                />
+              {/* SYMPTOMS */}
 
-                            </Section>
+              <Section title="Симптомы">
 
-                            {/* TRAUMA */}
+                <ArrayBlock
+                  items={profile?.symptoms}
+                />
 
-                            <Section title="Травма">
+              </Section>
 
-                                <div className="space-y-2 text-sm">
+              {/* NEGATIVE */}
 
-                                    <div>
+              <Section title="Отрицательные симптомы">
 
-                                        <span className="text-slate-400">
-                                            Наличие:
-                                        </span>{" "}
+                <ArrayBlock
+                  items={profile?.negativeFindings}
+                />
 
-                                        {profile?.trauma?.exists
-                                            ? "Да"
-                                            : "Нет"}
+              </Section>
 
-                                    </div>
+              {/* TRAUMA */}
 
-                                    <div>
+              <Section title="Травма">
 
-                                        <span className="text-slate-400">
-                                            Механизм:
-                                        </span>{" "}
+                <div className="space-y-2 text-sm">
 
-                                        {profile?.trauma?.mechanism || "—"}
+                  <div>
 
-                                    </div>
+                    <span className="text-slate-400">
+                      Наличие:
+                    </span>{" "}
 
-                                </div>
+                    {profile?.trauma?.exists
+                      ? "Да"
+                      : "Нет"}
 
-                            </Section>
+                  </div>
 
-                            {/* LIMITATIONS */}
+                  <div>
 
-                            <Section title="Ограничения">
+                    <span className="text-slate-400">
+                      Механизм:
+                    </span>{" "}
 
-                                <ArrayBlock
-                                    items={
-                                        profile?.functionalLimitations
-                                    }
-                                />
+                    {profile?.trauma?.mechanism || "—"}
 
-                            </Section>
+                  </div>
 
-                            {/* TRIGGERS */}
+                </div>
 
-                            <Section title="Триггеры">
+              </Section>
 
-                                <ArrayBlock
-                                    items={
-                                        profile?.possibleTriggers
-                                    }
-                                />
+              {/* LIMITATIONS */}
 
-                            </Section>
+              <Section title="Ограничения">
 
-                            {/* RED FLAGS */}
+                <ArrayBlock
+                  items={
+                    profile?.functionalLimitations
+                  }
+                />
 
-                            <Section title="Red Flags">
+              </Section>
 
-                                <ArrayBlock
-                                    items={profile?.redFlags}
-                                />
+              {/* TRIGGERS */}
 
-                            </Section>
+              <Section title="Триггеры">
 
-                            {/* RESOLVED */}
+                <ArrayBlock
+                  items={
+                    profile?.possibleTriggers
+                  }
+                />
 
-                            <Section title="Закрытые темы">
+              </Section>
 
-                                <ArrayBlock
-                                    items={
-                                        profile?.resolvedTopics
-                                    }
-                                />
+              {/* RED FLAGS */}
 
-                            </Section>
+              <Section title="Red Flags">
 
-                            {/* MISSING */}
+                <ArrayBlock
+                  items={profile?.redFlags}
+                />
 
-                            <Section title="Чего не хватает">
+              </Section>
 
-                                <ArrayBlock
-                                    items={
-                                        profile?.missingTopics
-                                    }
-                                />
+              {/* RESOLVED */}
 
-                            </Section>
+              <Section title="Закрытые темы">
 
-                        </div>
+                <ArrayBlock
+                  items={
+                    profile?.resolvedTopics
+                  }
+                />
 
-                        {/* FOOTER */}
+              </Section>
 
-                        <div className="p-4 border-t border-slate-100 bg-slate-50">
+              {/* MISSING */}
 
-                            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <Section title="Чего не хватает">
 
-                                <Activity size={14} />
+                <ArrayBlock
+                  items={
+                    profile?.missingTopics
+                  }
+                />
 
-                                Profile обновляется в realtime
+              </Section>
 
-                            </div>
+            </div>
 
-                        </div>
+            {/* FOOTER */}
 
-                    </motion.div>
+            <div className="p-4 border-t border-slate-100 bg-slate-50">
 
-                </>
-            )}
+              <div className="flex items-center gap-2 text-xs text-slate-500">
 
-        </AnimatePresence>
-    );
+                <Activity size={14} />
+
+                Profile обновляется в realtime
+
+              </div>
+
+            </div>
+
+          </motion.div>
+
+        </>
+      )}
+
+    </AnimatePresence>
+  );
 };
+
