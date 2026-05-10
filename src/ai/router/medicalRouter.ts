@@ -99,6 +99,17 @@ export class MedicalRouter {
 
     try {
 
+      console.log(
+        "ROUTER PROFILE:",
+        JSON.stringify(
+          memory.patientProfile,
+          null,
+          2
+        )
+      );
+
+
+
       const compact =
 
         this.buildCompactContext(

@@ -348,6 +348,9 @@ ${JSON.stringify(
 NEW USER MESSAGE:
 ${userMessage}
 
+RECENT HISTORY:
+${JSON.stringify(history, null, 2)}
+
 Return ONLY valid JSON.
 `;
 

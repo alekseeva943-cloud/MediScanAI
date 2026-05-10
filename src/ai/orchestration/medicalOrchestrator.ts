@@ -162,12 +162,27 @@ export class MedicalOrchestrator {
 
           currentProfile,
 
-          safeUserInput
+          safeUserInput,
+
+          safeHistory
         );
 
     console.log(
-      "Updated patient profile:",
-      updatedProfile
+      "CURRENT PROFILE:",
+      JSON.stringify(
+        currentProfile,
+        null,
+        2
+      )
+    );
+
+    console.log(
+      "UPDATED PROFILE:",
+      JSON.stringify(
+        updatedProfile,
+        null,
+        2
+      )
     );
 
     // -----------------------------------
@@ -183,6 +198,15 @@ export class MedicalOrchestrator {
             updatedProfile
         }
       );
+
+    console.log(
+      "UPDATED MEMORY:",
+      JSON.stringify(
+        updatedMemory,
+        null,
+        2
+      )
+    );
 
     // -----------------------------------
     // MEDICAL STATE UPDATE
