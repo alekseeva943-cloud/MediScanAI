@@ -4,8 +4,6 @@ import { OpenAIProvider } from "../providers/openaiProvider.js";
 
 import { MedicalRouter } from "../router/medicalRouter.js";
 
-import { MedicalStateUpdater } from "./medicalStateUpdater.js";
-
 import { SYSTEM_PROMPT } from "../prompts/systemPrompt.js";
 
 import { ANALYSIS_PROMPT } from "../prompts/analysisPrompt.js";
@@ -17,15 +15,9 @@ import { MEMORY_EXTRACTION_PROMPT } from "../prompts/memoryExtractionPrompt.js";
 import { ResponseMode } from "../types/index.js";
 
 import type {
-
   MedicalMemory,
-
   AnalysisSnapshot,
-
-  RouterDecision,
-
-  AIMedicalUpdateResult
-
+  RouterDecision
 } from "../types/index.js";
 
 export class MedicalOrchestrator {
@@ -33,8 +25,6 @@ export class MedicalOrchestrator {
   private provider: OpenAIProvider;
 
   private router: MedicalRouter;
-
-  private stateUpdater: MedicalStateUpdater;
 
   constructor(apiKey?: string) {
 
@@ -48,9 +38,6 @@ export class MedicalOrchestrator {
 
     this.router =
       new MedicalRouter(key);
-
-    this.stateUpdater =
-      new MedicalStateUpdater(key);
   }
 
   // -----------------------------------
@@ -188,6 +175,10 @@ ${userInput.slice(0, 4000)}
     const extractedFacts =
       memory.extractedFacts || [];
 
+    // -----------------------------------
+    // LOW RISK HEURISTICS
+    // -----------------------------------
+
     const joinedFacts =
       extractedFacts
         .join(" ")
@@ -247,6 +238,10 @@ ${userInput.slice(0, 4000)}
       &&
       !joinedFacts.includes("температ");
 
+    // -----------------------------------
+    // CONFIDENCE
+    // -----------------------------------
+
     let confidence:
       "low" |
       "medium" |
@@ -266,6 +261,10 @@ ${userInput.slice(0, 4000)}
 
       confidence = "medium";
     }
+
+    // -----------------------------------
+    // EARLY EXIT
+    // -----------------------------------
 
     const shouldFinishInterview =
 
@@ -308,40 +307,6 @@ ${userInput.slice(0, 4000)}
 
     const safeHistory =
       history.slice(-10);
-
-    // -----------------------------------
-    // AI STATE UPDATE
-    // -----------------------------------
-
-    let medicalStateUpdates:
-      AIMedicalUpdateResult = {};
-
-    try {
-
-      medicalStateUpdates =
-
-        await this.stateUpdater
-          .updateMedicalState(
-
-            safeUserInput,
-
-            memory,
-
-            lastAnalysis
-          );
-
-      console.log(
-        "Medical state updates:",
-        medicalStateUpdates
-      );
-
-    } catch (error) {
-
-      console.error(
-        "Medical updater failed:",
-        error
-      );
-    }
 
     // -----------------------------------
     // INTERVIEW STATE
@@ -529,7 +494,11 @@ ${userInput.slice(0, 4000)}
     let modelName:
       "gpt-4o-mini" |
       "gpt-4.1-mini" =
-      "gpt-4o-mini";
+        "gpt-4o-mini";
+
+    // -----------------------------------
+    // ANALYSIS MODES
+    // -----------------------------------
 
     switch (decision.mode) {
 
@@ -657,9 +626,6 @@ RETURN JSON ONLY.
 
 CURRENT MEDICAL MEMORY:
 ${JSON.stringify(compactMemory)}
-
-MEDICAL STATE UPDATES:
-${JSON.stringify(medicalStateUpdates)}
 `;
 
     // -----------------------------------
@@ -860,9 +826,7 @@ ${JSON.stringify(medicalStateUpdates)}
         normalizedResponse.quickReplies,
 
       structuredData:
-        normalizedResponse,
-
-
+        normalizedResponse
     };
   }
 }
