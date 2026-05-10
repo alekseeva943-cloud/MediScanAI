@@ -57,31 +57,36 @@ export const apiService = {
   ): Promise<ChatApiResponse> {
 
     const reducedMessages =
-      messages.slice(-4);
+  messages.slice(-4);
 
-    const response =
-      await fetch('/api/chat', {
+console.log(
+  "SENDING MEMORY:",
+  patientProfile
+);
 
-        method: 'POST',
+const response =
+  await fetch('/api/chat', {
 
-        headers: {
+    method: 'POST',
 
-          'Content-Type':
-            'application/json'
-        },
+    headers: {
 
-        body: JSON.stringify({
+      'Content-Type':
+        'application/json'
+    },
 
-          messages:
-            reducedMessages,
+      body: JSON.stringify({
 
-          patientProfile,
+        messages:
+          reducedMessages,
 
-          activeCase,
+        patientProfile,
 
-          lastAnalysis
-        })
-      });
+        activeCase,
+
+        lastAnalysis
+      })
+    });
 
     // -----------------------------------------------------
     // ERROR
@@ -184,4 +189,3 @@ export const apiService = {
     return data.text;
   }
 };
-
