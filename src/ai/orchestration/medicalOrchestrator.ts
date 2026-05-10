@@ -529,7 +529,7 @@ ${userInput.slice(0, 4000)}
     let modelName:
       "gpt-4o-mini" |
       "gpt-4.1-mini" =
-        "gpt-4o-mini";
+      "gpt-4o-mini";
 
     switch (decision.mode) {
 
@@ -831,9 +831,7 @@ ${JSON.stringify(medicalStateUpdates)}
         interviewState.confidence,
 
       timestamp:
-        Date.now(),
-
-      medicalStateUpdates
+        Date.now()
     };
 
     // -----------------------------------
@@ -864,7 +862,7 @@ ${JSON.stringify(medicalStateUpdates)}
       structuredData:
         normalizedResponse,
 
-      medicalStateUpdates
+
     };
   }
 }
