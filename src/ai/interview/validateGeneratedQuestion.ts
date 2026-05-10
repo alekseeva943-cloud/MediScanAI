@@ -1,17 +1,18 @@
 // src/ai/interview/validateGeneratedQuestion.ts
 
-// Этот файл отвечает за проверку
-// вопроса, который сгенерировал AI.
+// Проверка AI вопроса.
 //
-// Главная задача:
+// Этот слой нужен чтобы:
 //
-// НЕ дать AI:
-// - повторять вопросы,
-// - спрашивать одно и то же,
-// - зацикливаться,
-// - задавать useless questions.
+// - блокировать циклы
+// - блокировать повторные вопросы
+// - блокировать перефразированные повторы
 //
-// Это post-generation validation layer.
+// ВАЖНО:
+//
+// Это НЕ medical logic.
+//
+// Это только anti-loop protection.
 
 import {
   classifyQuestionTopic
@@ -26,38 +27,43 @@ export interface QuestionValidationResult {
   topic: string;
 }
 
+function normalizeQuestion(
+  question: string
+): string {
+
+  return question
+    .toLowerCase()
+    .trim()
+    .replace(/[?.!,]/g, "");
+}
+
 export function validateGeneratedQuestion(
   question: string,
   alreadyCoveredTopics: string[]
 ): QuestionValidationResult {
 
+  const normalizedQuestion =
+    normalizeQuestion(question);
+
   const topic =
-    classifyQuestionTopic(question);
+    classifyQuestionTopic(
+      normalizedQuestion
+    );
 
   // -----------------------------------
-  // UNKNOWN
-  // -----------------------------------
-
-  if (
-    topic === "unknown"
-  ) {
-
-    return {
-
-      valid: true,
-
-      topic
-    };
-  }
-
-  // -----------------------------------
-  // REPEAT DETECTION
+  // DIRECT TOPIC REPEAT
   // -----------------------------------
 
   if (
+
+    topic !== "unknown"
+
+    &&
+
     alreadyCoveredTopics.includes(
       topic
     )
+
   ) {
 
     return {
@@ -69,6 +75,80 @@ export function validateGeneratedQuestion(
       reason:
         `Repeated topic: ${topic}`
     };
+  }
+
+  // -----------------------------------
+  // SEMANTIC REPEATS
+  // -----------------------------------
+
+  const repeatPatterns = [
+
+    // pain character
+
+    "какой характер боли",
+    "боль острая",
+    "боль тупая",
+    "боль жгучая",
+
+    // pain location
+
+    "где болит",
+    "где именно болит",
+
+    // swelling
+
+    "есть ли отек",
+    "имеется ли отек",
+
+    // numbness
+
+    "есть ли онемение",
+
+    // trauma
+
+    "была ли травма",
+    "ударялись ли",
+
+    // duration
+
+    "как долго",
+    "когда началось"
+  ];
+
+  const matchedRepeat =
+
+    repeatPatterns.find(pattern =>
+
+      normalizedQuestion.includes(
+        pattern
+      )
+    );
+
+  if (matchedRepeat) {
+
+    const repeatedTopic =
+      classifyQuestionTopic(
+        matchedRepeat
+      );
+
+    if (
+
+      alreadyCoveredTopics.includes(
+        repeatedTopic
+      )
+
+    ) {
+
+      return {
+
+        valid: false,
+
+        topic: repeatedTopic,
+
+        reason:
+          `Semantic repeat: ${repeatedTopic}`
+      };
+    }
   }
 
   return {

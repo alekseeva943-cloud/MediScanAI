@@ -1,31 +1,22 @@
 // src/ai/interview/questionTopics.ts
 
-// Этот файл отвечает за определение
-// смысловой темы медицинского вопроса.
+// Semantic topic classifier.
 //
-// GPT может задавать один и тот же вопрос
-// разными словами.
+// Нужен чтобы:
 //
-// Например:
+// - ловить повторы
+// - ловить перефразированные вопросы
+// - уменьшать AI loops
 //
-// - "Как именно вы ударились?"
-// - "Это был удар о предмет?"
-// - "Как произошла травма?"
-//
-// Всё это:
-//
-// injury_mechanism
-//
-// Это нужно чтобы:
-// - избегать повторов,
-// - контролировать interview flow,
-// - строить нормальный diagnostic engine.
+// Это НЕ medical reasoning.
+// Это semantic grouping.
 
 export type QuestionTopic =
 
   | "injury_mechanism"
   | "pain_character"
   | "pain_location"
+  | "pain_severity"
   | "range_of_motion"
   | "swelling"
   | "bruising"
@@ -34,14 +25,37 @@ export type QuestionTopic =
   | "bleeding"
   | "fever"
   | "duration"
+  | "triggers"
+  | "medications"
+  | "red_flags"
   | "unknown";
+
+// -----------------------------------
+// HELPERS
+// -----------------------------------
+
+function containsAny(
+  text: string,
+  patterns: string[]
+): boolean {
+
+  return patterns.some(pattern =>
+    text.includes(pattern)
+  );
+}
+
+// -----------------------------------
+// CLASSIFIER
+// -----------------------------------
 
 export function classifyQuestionTopic(
   text: string
 ): QuestionTopic {
 
   const normalized =
-    text.toLowerCase();
+    text
+      .toLowerCase()
+      .trim();
 
   // -----------------------------------
   // INJURY
@@ -49,22 +63,17 @@ export function classifyQuestionTopic(
 
   if (
 
-    normalized.includes("как удар")
-    ||
+    containsAny(normalized, [
 
-    normalized.includes("как произош")
+      "как удар",
+      "как произош",
+      "механизм",
+      "удар о",
+      "паден",
+      "травм",
+      "ушиб"
 
-    ||
-
-    normalized.includes("механизм")
-
-    ||
-
-    normalized.includes("удар о")
-
-    ||
-
-    normalized.includes("паден")
+    ])
 
   ) {
 
@@ -77,23 +86,61 @@ export function classifyQuestionTopic(
 
   if (
 
-    normalized.includes("острая")
+    containsAny(normalized, [
 
-    ||
+      "характер боли",
+      "какая боль",
+      "острая",
+      "тупая",
+      "жгуч",
+      "пульсир",
+      "ноющая"
 
-    normalized.includes("тупая")
-
-    ||
-
-    normalized.includes("пульсир")
-
-    ||
-
-    normalized.includes("характер боли")
+    ])
 
   ) {
 
     return "pain_character";
+  }
+
+  // -----------------------------------
+  // PAIN LOCATION
+  // -----------------------------------
+
+  if (
+
+    containsAny(normalized, [
+
+      "где болит",
+      "где именно",
+      "локализация",
+      "в каком месте"
+
+    ])
+
+  ) {
+
+    return "pain_location";
+  }
+
+  // -----------------------------------
+  // PAIN SEVERITY
+  // -----------------------------------
+
+  if (
+
+    containsAny(normalized, [
+
+      "насколько сильная",
+      "сильная ли боль",
+      "оцените боль",
+      "боль от 1 до 10"
+
+    ])
+
+  ) {
+
+    return "pain_severity";
   }
 
   // -----------------------------------
@@ -102,15 +149,15 @@ export function classifyQuestionTopic(
 
   if (
 
-    normalized.includes("поднять руку")
+    containsAny(normalized, [
 
-    ||
+      "поднять руку",
+      "двигать",
+      "ограничение движения",
+      "можете двигать",
+      "трудно двигать"
 
-    normalized.includes("двигать")
-
-    ||
-
-    normalized.includes("ограничение движения")
+    ])
 
   ) {
 
@@ -123,11 +170,13 @@ export function classifyQuestionTopic(
 
   if (
 
-    normalized.includes("отек")
+    containsAny(normalized, [
 
-    ||
+      "отек",
+      "опух",
+      "припух"
 
-    normalized.includes("опух")
+    ])
 
   ) {
 
@@ -140,11 +189,12 @@ export function classifyQuestionTopic(
 
   if (
 
-    normalized.includes("синяк")
+    containsAny(normalized, [
 
-    ||
+      "синяк",
+      "гематом"
 
-    normalized.includes("гематом")
+    ])
 
   ) {
 
@@ -157,7 +207,13 @@ export function classifyQuestionTopic(
 
   if (
 
-    normalized.includes("онем")
+    containsAny(normalized, [
+
+      "онем",
+      "покалыв",
+      "чувствительность"
+
+    ])
 
   ) {
 
@@ -170,7 +226,13 @@ export function classifyQuestionTopic(
 
   if (
 
-    normalized.includes("дыш")
+    containsAny(normalized, [
+
+      "дыш",
+      "одыш",
+      "нехватка воздуха"
+
+    ])
 
   ) {
 
@@ -183,7 +245,12 @@ export function classifyQuestionTopic(
 
   if (
 
-    normalized.includes("кров")
+    containsAny(normalized, [
+
+      "кров",
+      "кровотеч"
+
+    ])
 
   ) {
 
@@ -196,11 +263,13 @@ export function classifyQuestionTopic(
 
   if (
 
-    normalized.includes("температ")
+    containsAny(normalized, [
 
-    ||
+      "температ",
+      "лихорад",
+      "жар"
 
-    normalized.includes("лихорад")
+    ])
 
   ) {
 
@@ -213,19 +282,78 @@ export function classifyQuestionTopic(
 
   if (
 
-    normalized.includes("когда нач")
+    containsAny(normalized, [
 
-    ||
+      "когда нач",
+      "как давно",
+      "сколько времени",
+      "как долго",
+      "давно ли"
 
-    normalized.includes("как давно")
-
-    ||
-
-    normalized.includes("сколько времени")
+    ])
 
   ) {
 
     return "duration";
+  }
+
+  // -----------------------------------
+  // TRIGGERS
+  // -----------------------------------
+
+  if (
+
+    containsAny(normalized, [
+
+      "после чего",
+      "что спровоцировало",
+      "что ухудшает",
+      "что усиливает"
+
+    ])
+
+  ) {
+
+    return "triggers";
+  }
+
+  // -----------------------------------
+  // MEDICATIONS
+  // -----------------------------------
+
+  if (
+
+    containsAny(normalized, [
+
+      "что принимали",
+      "какие лекарства",
+      "что помогает"
+
+    ])
+
+  ) {
+
+    return "medications";
+  }
+
+  // -----------------------------------
+  // RED FLAGS
+  // -----------------------------------
+
+  if (
+
+    containsAny(normalized, [
+
+      "теряли сознание",
+      "сильная слабость",
+      "судороги",
+      "удушье"
+
+    ])
+
+  ) {
+
+    return "red_flags";
   }
 
   return "unknown";

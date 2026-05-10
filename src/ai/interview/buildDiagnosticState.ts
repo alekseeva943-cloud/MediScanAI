@@ -6,18 +6,21 @@
 // ВАЖНО:
 //
 // Здесь НЕ должно быть:
-// - медицинской логики
-// - symptom-specific rules
-// - hardcoded conditions
-// - disease reasoning
+// - medical reasoning
+// - disease logic
+// - symptom hardcode
+// - diagnosis logic
 //
-// Этот модуль только:
-// - собирает profile,
-// - собирает confirmed findings,
-// - собирает missing topics,
-// - передает всё в GPT.
+// Этот файл только:
 //
-// Медицинские решения принимает GPT.
+// - собирает confirmed findings
+// - собирает negative findings
+// - передает profile в GPT
+//
+// GPT сам решает:
+// - чего не хватает
+// - что спрашивать
+// - что уже достаточно уточнено
 
 import type {
   MedicalMemory
@@ -41,8 +44,6 @@ export interface DiagnosticState {
 
   alreadyCovered: string[];
 
-  missingInformation: string[];
-
   redFlags: string[];
 }
 
@@ -56,7 +57,9 @@ function buildConfirmedFindings(
 
   const findings: string[] = [];
 
+  // -----------------------------------
   // MAIN COMPLAINT
+  // -----------------------------------
 
   if (
     profile.mainComplaint
@@ -67,13 +70,17 @@ function buildConfirmedFindings(
     );
   }
 
+  // -----------------------------------
   // SYMPTOMS
+  // -----------------------------------
 
   findings.push(
     ...(profile.symptoms || [])
   );
 
+  // -----------------------------------
   // PAIN
+  // -----------------------------------
 
   if (
     profile.pain?.location
@@ -94,6 +101,15 @@ function buildConfirmedFindings(
   }
 
   if (
+    profile.pain?.severity
+  ) {
+
+    findings.push(
+      `Интенсивность боли: ${profile.pain.severity}`
+    );
+  }
+
+  if (
     profile.pain?.duration
   ) {
 
@@ -102,7 +118,9 @@ function buildConfirmedFindings(
     );
   }
 
+  // -----------------------------------
   // TRAUMA
+  // -----------------------------------
 
   if (
     profile.trauma?.exists
@@ -122,16 +140,28 @@ function buildConfirmedFindings(
     );
   }
 
+  // -----------------------------------
   // FUNCTIONAL LIMITATIONS
+  // -----------------------------------
 
   findings.push(
     ...(profile.functionalLimitations || [])
   );
 
-  // POSSIBLE TRIGGERS
+  // -----------------------------------
+  // TRIGGERS
+  // -----------------------------------
 
   findings.push(
     ...(profile.possibleTriggers || [])
+  );
+
+  // -----------------------------------
+  // ADDITIONAL FINDINGS
+  // -----------------------------------
+
+  findings.push(
+    ...(profile.additionalFindings || [])
   );
 
   return findings;
@@ -163,8 +193,6 @@ export function buildDiagnosticState(
       alreadyCovered:
         interviewState.previousQuestions,
 
-      missingInformation: [],
-
       redFlags: []
     };
   }
@@ -183,10 +211,7 @@ export function buildDiagnosticState(
       profile.negativeFindings || [],
 
     alreadyCovered:
-      profile.resolvedTopics || [],
-
-    missingInformation:
-      profile.missingTopics || [],
+      interviewState.previousQuestions || [],
 
     redFlags:
       profile.redFlags || []

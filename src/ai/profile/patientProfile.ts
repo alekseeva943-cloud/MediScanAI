@@ -1,12 +1,16 @@
 // src/ai/profile/patientProfile.ts
 
-// Главный профиль пациента.
+// Главный structured clinical profile.
 //
-// Это главный clinical state.
+// Здесь хранятся ТОЛЬКО факты.
 //
-// GPT должен работать
-// через structured profile,
-// а НЕ через raw chat.
+// ВАЖНО:
+//
+// Никакой interview logic.
+// Никаких AI conclusions.
+// Никаких dynamic assumptions.
+//
+// Только clinical facts.
 
 export interface PatientProfile {
 
@@ -81,24 +85,10 @@ export interface PatientProfile {
   redFlags: string[];
 
   // -----------------------------------
-  // ЗАКРЫТЫЕ ТЕМЫ
+  // ДОПОЛНИТЕЛЬНЫЕ КЛИНИЧЕСКИЕ ФАКТЫ
   // -----------------------------------
 
-  resolvedTopics: string[];
-
-  // -----------------------------------
-  // ЧЕГО НЕ ХВАТАЕТ
-  // -----------------------------------
-
-  missingTopics: string[];
-
-  // -----------------------------------
-  // ВЕРОЯТНЫЕ СЦЕНАРИИ
-  // -----------------------------------
-
-  likelyScenarios: string[];
-
-  excludedScenarios: string[];
+  additionalFindings: string[];
 }
 
 // -----------------------------------
@@ -142,11 +132,5 @@ export const EMPTY_PATIENT_PROFILE:
 
     redFlags: [],
 
-    resolvedTopics: [],
-
-    missingTopics: [],
-
-    likelyScenarios: [],
-
-    excludedScenarios: []
+    additionalFindings: []
   };

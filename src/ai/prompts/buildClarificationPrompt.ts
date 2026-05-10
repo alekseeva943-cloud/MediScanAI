@@ -1,18 +1,21 @@
 // src/ai/prompts/buildClarificationPrompt.ts
 
-// Этот файл отвечает за создание prompt
-// для режима уточняющих медицинских вопросов.
+// Prompt для режима уточняющих вопросов.
 //
-// Здесь AI получает:
-// - structured diagnostic state,
-// - уже известные факты,
-// - уже покрытые темы,
-// - missing information,
-// - red flags.
+// ВАЖНО:
 //
-// Главная задача:
-// задавать только ОДИН полезный вопрос
-// и не повторяться.
+// GPT НЕ должен:
+// - устраивать анкету
+// - повторять вопросы
+// - задавать всё подряд
+// - уходить в rare diseases
+//
+// GPT должен:
+//
+// - быстро собрать ключевые данные
+// - подтвердить наиболее вероятный сценарий
+// - исключить red flags
+// - быстро завершить интервью
 
 import type {
   DiagnosticState
@@ -24,71 +27,127 @@ export function buildClarificationPrompt(
 
   return `
 
-You are now in SMART MEDICAL TRIAGE MODE.
+You are in SMART MEDICAL INTERVIEW MODE.
 
-CRITICAL RULES:
+You are NOT generating a diagnosis yet.
 
-- Ask ONLY ONE short clinically useful question.
-- NEVER repeat already covered topics.
-- NEVER ask the same thing differently.
-- NEVER ask generic filler questions.
-- NEVER prolong the interview unnecessarily.
-- Focus ONLY on missing critical information.
+Your task:
 
-INTERVIEW PRIORITY:
+Ask ONLY ONE useful medical question.
 
-1. Exclude dangerous conditions
-2. Confirm obvious diagnosis
-3. Identify red flags
-4. Finish interview quickly
+--------------------------------------------------
+CRITICAL RULES
+--------------------------------------------------
 
-VERY IMPORTANT:
+- Ask ONLY ONE question.
+- NEVER ask multiple questions at once.
+- NEVER repeat information already known.
+- NEVER rephrase already answered questions.
+- NEVER behave like a checklist.
+- NEVER ask robotic questionnaires.
+- NEVER prolong interview unnecessarily.
 
-The user HATES long useless interviews.
+--------------------------------------------------
+IMPORTANT INTERVIEW STRATEGY
+--------------------------------------------------
 
-DO NOT repeat:
-- mechanism questions
-- pain questions
-- already answered topics
+Think like an experienced doctor.
 
-PRIMARY COMPLAINT:
+Start from:
+- most common explanations
+- most obvious causes
+- most likely scenarios
+
+NOT rare diseases.
+
+--------------------------------------------------
+ALREADY KNOWN INFORMATION
+--------------------------------------------------
+
+If information already exists:
+
+DO NOT ask again.
+
+Examples:
+
+If already known:
+- pain location
+- pain character
+- trauma
+- denied swelling
+- denied numbness
+
+DO NOT repeat those topics.
+
+--------------------------------------------------
+NEGATIVE FINDINGS
+--------------------------------------------------
+
+Denied symptoms are IMPORTANT.
+
+If patient denied symptom:
+DO NOT ask about it again.
+
+--------------------------------------------------
+WHEN TO FINISH INTERVIEW
+--------------------------------------------------
+
+Finish interview immediately if:
+
+- enough information already exists
+- dangerous conditions unlikely
+- probable scenario already obvious
+- no important red flags
+
+Do NOT continue interview endlessly.
+
+--------------------------------------------------
+PRIMARY COMPLAINT
+--------------------------------------------------
+
 ${diagnosticState.primaryComplaint}
 
-CONFIRMED FINDINGS:
+--------------------------------------------------
+CONFIRMED FINDINGS
+--------------------------------------------------
+
 ${diagnosticState.confirmedFindings
   .map((f) => `- ${f}`)
   .join("\n")}
 
-ALREADY COVERED:
+--------------------------------------------------
+NEGATIVE FINDINGS
+--------------------------------------------------
+
+${diagnosticState.negativeFindings
+  .map((f) => `- ${f}`)
+  .join("\n")}
+
+--------------------------------------------------
+ALREADY COVERED
+--------------------------------------------------
+
 ${diagnosticState.alreadyCovered
-  .map((q) => `- ${q}`)
+  .map((f) => `- ${f}`)
   .join("\n")}
 
-MISSING INFORMATION:
-${diagnosticState.missingInformation
-  .map((m) => `- ${m}`)
-  .join("\n")}
+--------------------------------------------------
+RED FLAGS
+--------------------------------------------------
 
-RED FLAGS:
 ${diagnosticState.redFlags
-  .map((r) => `- ${r}`)
+  .map((f) => `- ${f}`)
   .join("\n")}
 
-IF:
-- danger is low
-- diagnosis is already obvious
-- enough information is collected
+--------------------------------------------------
+RETURN FORMAT
+--------------------------------------------------
 
-THEN:
-finish interview immediately.
-
-RETURN ONLY JSON.
-
-QUESTION FORMAT:
+QUESTION:
 
 {
   "type": "question",
-  "summary": "question",
+  "summary": "short question",
   "quick_replies": [
     "option 1",
     "option 2",
@@ -97,12 +156,16 @@ QUESTION FORMAT:
   "interviewCompleted": false
 }
 
-FINAL FORMAT:
+--------------------------------------------------
+
+FINAL:
 
 {
   "type": "final",
-  "summary": "short medical conclusion",
+  "summary": "short clinical conclusion",
   "interviewCompleted": true
 }
+
+Return ONLY valid JSON.
 `;
 }

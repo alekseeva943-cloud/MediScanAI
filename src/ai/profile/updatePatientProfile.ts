@@ -14,7 +14,7 @@ import { OpenAIProvider }
 
 import type {
   PatientProfile
-} from "./patientProfile.js";
+} from "../profile/patientProfile.js";
 
 import {
   PROFILE_UPDATE_PROMPT
