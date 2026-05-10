@@ -1,26 +1,20 @@
 // src/ai/interview/buildDiagnosticState.ts
 
 // Этот файл собирает
-// структурированное диагностическое состояние.
+// structured diagnostic state.
 //
 // ВАЖНО:
 //
 // Здесь НЕ должно быть:
-// - medical reasoning
-// - disease logic
-// - symptom hardcode
 // - diagnosis logic
+// - disease reasoning
+// - symptom hardcode
+// - medical decision making
 //
 // Этот файл только:
-//
 // - собирает confirmed findings
 // - собирает negative findings
-// - передает profile в GPT
-//
-// GPT сам решает:
-// - чего не хватает
-// - что спрашивать
-// - что уже достаточно уточнено
+// - передает profile дальше
 
 import type {
   MedicalMemory
@@ -33,6 +27,10 @@ import type {
 import type {
   PatientProfile
 } from "../profile/patientProfile.js";
+
+// -----------------------------------
+// DIAGNOSTIC STATE
+// -----------------------------------
 
 export interface DiagnosticState {
 
@@ -156,14 +154,6 @@ function buildConfirmedFindings(
     ...(profile.possibleTriggers || [])
   );
 
-  // -----------------------------------
-  // ADDITIONAL FINDINGS
-  // -----------------------------------
-
-  findings.push(
-    ...(profile.additionalFindings || [])
-  );
-
   return findings;
 }
 
@@ -191,7 +181,7 @@ export function buildDiagnosticState(
       negativeFindings: [],
 
       alreadyCovered:
-        interviewState.previousQuestions,
+        interviewState.previousQuestions || [],
 
       redFlags: []
     };
@@ -211,7 +201,7 @@ export function buildDiagnosticState(
       profile.negativeFindings || [],
 
     alreadyCovered:
-      interviewState.previousQuestions || [],
+      profile.resolvedTopics || [],
 
     redFlags:
       profile.redFlags || []
